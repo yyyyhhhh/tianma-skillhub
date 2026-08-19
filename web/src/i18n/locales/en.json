@@ -882,6 +882,8 @@
     "install": "Install",
     "installMethodClawhub": "ClawHub CLI",
     "installMethodSkillhub": "SkillHub CLI",
+    "installScopeUser": "User-level",
+    "installScopeProject": "Project-level",
     "download": "Download",
     "labelsSectionTitle": "Labels",
     "labelsSectionDescription": "Attach or remove recommended labels that help users filter and discover this skill.",

@@ -32,9 +32,16 @@ export function buildInstallCommand(namespace: string, slug: string, baseUrl: st
   return `npx clawhub install ${installTarget} --registry ${baseUrl}`
 }
 
-export function buildSkillhubInstallCommand(namespace: string, slug: string, baseUrl: string): string {
+export type InstallScope = 'user' | 'project'
+
+export function buildSkillhubInstallCommand(
+  namespace: string,
+  slug: string,
+  baseUrl: string,
+  scope: InstallScope,
+): string {
   const namespaceArg = namespace === 'global' ? '' : ` --namespace ${namespace}`
-  return `npx @astron-team/skillhub@latest install ${slug}${namespaceArg} --registry ${baseUrl}`
+  return `npx @astron-team/skillhub@latest install ${slug}${namespaceArg} --scope ${scope} --registry ${baseUrl}`
 }
 
 interface CommandBlockProps {
@@ -78,11 +85,32 @@ function CommandBlock({ command }: CommandBlockProps) {
   )
 }
 
+interface ScopeCommandBlockProps {
+  scopeLabel: string
+  command: string
+}
+
+function ScopeCommandBlock({ scopeLabel, command }: ScopeCommandBlockProps) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs text-muted-foreground">{scopeLabel}</p>
+      <CommandBlock command={command} />
+    </div>
+  )
+}
+
 export function InstallCommand({ namespace, slug }: InstallCommandProps) {
   const { t } = useTranslation()
   const baseUrl = useMemo(() => getBaseUrl(), [])
   const clawhubCommand = useMemo(() => buildInstallCommand(namespace, slug, baseUrl), [baseUrl, namespace, slug])
-  const skillhubCommand = useMemo(() => buildSkillhubInstallCommand(namespace, slug, baseUrl), [baseUrl, namespace, slug])
+  const skillhubUserCommand = useMemo(
+    () => buildSkillhubInstallCommand(namespace, slug, baseUrl, 'user'),
+    [baseUrl, namespace, slug],
+  )
+  const skillhubProjectCommand = useMemo(
+    () => buildSkillhubInstallCommand(namespace, slug, baseUrl, 'project'),
+    [baseUrl, namespace, slug],
+  )
 
   return (
     <Tabs defaultValue="clawhub" className="space-y-3">
@@ -95,10 +123,20 @@ export function InstallCommand({ namespace, slug }: InstallCommandProps) {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="clawhub">
-        <CommandBlock command={clawhubCommand} />
+        <ScopeCommandBlock
+          scopeLabel={t('skillDetail.installScopeProject')}
+          command={clawhubCommand}
+        />
       </TabsContent>
-      <TabsContent value="skillhub">
-        <CommandBlock command={skillhubCommand} />
+      <TabsContent value="skillhub" className="space-y-3">
+        <ScopeCommandBlock
+          scopeLabel={t('skillDetail.installScopeUser')}
+          command={skillhubUserCommand}
+        />
+        <ScopeCommandBlock
+          scopeLabel={t('skillDetail.installScopeProject')}
+          command={skillhubProjectCommand}
+        />
       </TabsContent>
     </Tabs>
   )

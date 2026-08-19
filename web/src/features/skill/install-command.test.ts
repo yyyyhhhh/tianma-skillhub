@@ -1,4 +1,7 @@
+/** @vitest-environment jsdom */
+
 import { createElement } from 'react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -43,6 +46,7 @@ describe('install-command', () => {
   }
 
   afterEach(() => {
+    cleanup()
     if (originalWindow) {
       Object.defineProperty(globalThis, 'window', {
         configurable: true,
@@ -69,14 +73,20 @@ describe('install-command', () => {
   })
 
   it('builds a one-line SkillHub npx command for the global namespace', () => {
-    expect(buildSkillhubInstallCommand('global', 'my-skill', 'https://skill.xfyun.cn')).toBe(
-      'npx @astron-team/skillhub@latest install my-skill --registry https://skill.xfyun.cn',
+    expect(buildSkillhubInstallCommand('global', 'my-skill', 'https://skill.xfyun.cn', 'user')).toBe(
+      'npx @astron-team/skillhub@latest install my-skill --scope user --registry https://skill.xfyun.cn',
     )
   })
 
   it('builds a one-line SkillHub npx command with namespace for team skills', () => {
-    expect(buildSkillhubInstallCommand('team-alpha', 'my-skill', 'https://skill.xfyun.cn')).toBe(
-      'npx @astron-team/skillhub@latest install my-skill --namespace team-alpha --registry https://skill.xfyun.cn',
+    expect(buildSkillhubInstallCommand('team-alpha', 'my-skill', 'https://skill.xfyun.cn', 'user')).toBe(
+      'npx @astron-team/skillhub@latest install my-skill --namespace team-alpha --scope user --registry https://skill.xfyun.cn',
+    )
+  })
+
+  it('builds a project-scope SkillHub npx command', () => {
+    expect(buildSkillhubInstallCommand('team-alpha', 'my-skill', 'https://skill.xfyun.cn', 'project')).toBe(
+      'npx @astron-team/skillhub@latest install my-skill --namespace team-alpha --scope project --registry https://skill.xfyun.cn',
     )
   })
 
@@ -136,7 +146,24 @@ describe('install-command', () => {
     expect(html).toContain('skillDetail.installMethodClawhub')
     expect(html).toContain('skillDetail.installMethodSkillhub')
     expect(html).toContain('aria-selected="true"')
+    expect(html).toContain('skillDetail.installScopeProject')
     expect(html).toContain('npx clawhub install team-alpha--meeting-minutes-generator --registry https://app.example.com')
-    expect(html).not.toContain('npx @astron-team/skillhub@latest install meeting-minutes-generator --namespace team-alpha --registry https://app.example.com')
+    expect(html).not.toContain('npx @astron-team/skillhub@latest install meeting-minutes-generator --namespace team-alpha --scope user --registry https://app.example.com')
+  })
+
+  it('renders both user-level and project-level commands in the SkillHub CLI tab', () => {
+    setMockWindow('https://app.example.com')
+
+    render(createElement(InstallCommand, {
+      namespace: 'global',
+      slug: 'meeting-minutes-generator',
+    }))
+
+    fireEvent.click(screen.getByRole('tab', { name: 'skillDetail.installMethodSkillhub' }))
+
+    expect(screen.getByText('skillDetail.installScopeUser')).toBeTruthy()
+    expect(screen.getByText('skillDetail.installScopeProject')).toBeTruthy()
+    expect(screen.getByText(/npx @astron-team\/skillhub@latest install meeting-minutes-generator --scope user --registry https:\/\/app\.example\.com/)).toBeTruthy()
+    expect(screen.getByText(/npx @astron-team\/skillhub@latest install meeting-minutes-generator --scope project --registry https:\/\/app\.example\.com/)).toBeTruthy()
   })
 })
