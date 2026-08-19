@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import type { SkillSummary } from '@/api/types'
 import { useAuth } from '@/features/auth/use-auth'
 import { SearchBar } from '@/features/search/search-bar'
+import { SearchFilterPanel } from '@/features/search/search-filter-panel'
 import { SkillCard } from '@/features/skill/skill-card'
 import { SkeletonList } from '@/shared/components/skeleton-loader'
 import { EmptyState } from '@/shared/components/empty-state'
@@ -57,7 +58,13 @@ function scrollToTopOnPageChange() {
  * Search text, sorting, pagination, and the starred-only filter are mirrored into router search
  * params so the page can be shared, restored, and revisited without losing state.
  */
-function filterStarredSkills(skills: SkillSummary[], query: string, namespace: string): SkillSummary[] {
+function filterStarredSkills(
+  skills: SkillSummary[],
+  query: string,
+  namespace: string,
+  department: string,
+  selectedLabel: string,
+): SkillSummary[] {
   const normalizedQuery = query.trim().toLowerCase()
   const normalizedNamespace = namespace.trim().toLowerCase()
 
@@ -65,6 +72,15 @@ function filterStarredSkills(skills: SkillSummary[], query: string, namespace: s
     const matchesNamespace = !normalizedNamespace || skill.namespace.toLowerCase() === normalizedNamespace
     if (!matchesNamespace) {
       return false
+    }
+    if (department && skill.department !== department) {
+      return false
+    }
+    if (selectedLabel) {
+      const hasLabel = (skill.labels ?? []).some((label) => label.slug === selectedLabel)
+      if (!hasLabel) {
+        return false
+      }
     }
     if (!normalizedQuery) {
       return true
@@ -107,9 +123,9 @@ export function SearchPage() {
     q,
     namespace,
     label: selectedLabel,
-    department: department || undefined,
     sort,
     starredOnly,
+    ...(department ? { department } : {}),
   }
 
   useEffect(() => {
@@ -207,7 +223,13 @@ export function SearchPage() {
   const handleDepartmentChange = (nextDepartment: string) => {
     navigate({
       to: '/search',
-      search: { ...baseSearch, department: nextDepartment || undefined, page: 0 },
+      search: {
+        ...baseSearch,
+        ...(nextDepartment && nextDepartment !== department
+          ? { department: nextDepartment }
+          : { department: undefined }),
+        page: 0,
+      },
     })
   }
 
@@ -233,7 +255,7 @@ export function SearchPage() {
   }
 
   const filteredStarredSkills = starredOnly
-    ? sortStarredSkills(filterStarredSkills(starredSkills ?? [], q, namespace), sort)
+    ? sortStarredSkills(filterStarredSkills(starredSkills ?? [], q, namespace, department, selectedLabel), sort)
     : []
   const starredPageItems = starredOnly
     ? filteredStarredSkills.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
@@ -305,20 +327,6 @@ export function SearchPage() {
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            className="h-8 rounded-md border bg-background px-2 text-sm"
-            value={department}
-            onChange={(event) => handleDepartmentChange(event.target.value)}
-          >
-            <option value="">{t('search.filters.allDepartments')}</option>
-            {(departments ?? []).map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="shrink-0 text-sm font-medium text-muted-foreground">{t('search.filters.label')}</span>
           <Button
             variant={starredOnly ? 'default' : 'outline'}
             size="sm"
@@ -326,16 +334,6 @@ export function SearchPage() {
           >
             {t('search.filterStarred')}
           </Button>
-          {!starredOnly && labels?.map((label) => (
-            <Button
-              key={label.slug}
-              variant={selectedLabel === label.slug ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handleLabelToggle(label.slug)}
-            >
-              {label.displayName}
-            </Button>
-          ))}
           {namespace ? (
             <Button
               variant="default"
@@ -346,6 +344,15 @@ export function SearchPage() {
             </Button>
           ) : null}
         </div>
+
+        <SearchFilterPanel
+          labels={labels ?? []}
+          departments={departments ?? []}
+          selectedLabel={selectedLabel}
+          selectedDepartment={department}
+          onLabelToggle={handleLabelToggle}
+          onDepartmentToggle={handleDepartmentChange}
+        />
       </div>
 
       {/* Results */}

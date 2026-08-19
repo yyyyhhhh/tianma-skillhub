@@ -126,6 +126,12 @@ class SkillLabelAppServiceTest {
         ));
     }
 
+    @Test
+    void listSkillLabelsBySkillIds_returnsEmptyMapForBlankInput() {
+        assertEquals(Map.of(), service.listSkillLabelsBySkillIds(List.of()));
+        assertEquals(Map.of(), service.listSkillLabelsBySkillIds(null));
+    }
+
     private void setId(Object entity, Long id) throws Exception {
         Field idField = entity.getClass().getDeclaredField("id");
         idField.setAccessible(true);

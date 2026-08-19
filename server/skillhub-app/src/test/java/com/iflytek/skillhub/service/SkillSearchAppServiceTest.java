@@ -13,6 +13,7 @@ import com.iflytek.skillhub.domain.skill.SkillVersionRepository;
 import com.iflytek.skillhub.domain.skill.SkillVersionStatus;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
 import com.iflytek.skillhub.domain.skill.service.SkillLifecycleProjectionService;
+import com.iflytek.skillhub.dto.SkillLabelDto;
 import com.iflytek.skillhub.search.SearchQuery;
 import com.iflytek.skillhub.search.SearchQueryService;
 import com.iflytek.skillhub.search.SearchResult;
@@ -59,6 +60,9 @@ class SkillSearchAppServiceTest {
     @Mock
     private RbacService rbacService;
 
+    @Mock
+    private SkillLabelAppService skillLabelAppService;
+
     private SkillSearchAppService service;
 
     @BeforeEach
@@ -69,7 +73,8 @@ class SkillSearchAppServiceTest {
                 namespaceRepository,
                 namespaceService,
                 new SkillLifecycleProjectionService(skillVersionRepository),
-                rbacService
+                rbacService,
+                skillLabelAppService
         );
     }
 
@@ -107,6 +112,32 @@ class SkillSearchAppServiceTest {
         assertEquals("visible-skill", response.items().getFirst().slug());
         assertEquals(1, response.total());
         verify(searchQueryService, times(1)).search(any());
+    }
+
+    @Test
+    void search_shouldIncludeSkillLabelsOnSummaries() {
+        Skill visibleSkill = new Skill(2L, "labeled-skill", "owner-1", SkillVisibility.PUBLIC);
+        setField(visibleSkill, "id", 11L);
+        visibleSkill.setLatestVersionId(111L);
+
+        Namespace activeNamespace = new Namespace("team-a", "Team A", "owner-1");
+        setField(activeNamespace, "id", 2L);
+        activeNamespace.setStatus(NamespaceStatus.ACTIVE);
+
+        when(searchQueryService.search(org.mockito.ArgumentMatchers.any()))
+                .thenReturn(new SearchResult(List.of(11L), 1, 0, 20));
+        when(skillRepository.findByIdIn(List.of(11L))).thenReturn(List.of(visibleSkill));
+        when(namespaceRepository.findByIdIn(List.of(2L))).thenReturn(List.of(activeNamespace));
+        when(skillVersionRepository.findByIdIn(List.of(111L))).thenReturn(List.of());
+        when(skillLabelAppService.listSkillLabelsBySkillIds(List.of(11L)))
+                .thenReturn(Map.of(11L, List.of(new SkillLabelDto("scope-zhice", "RECOMMENDED", "智测"))));
+
+        SkillSearchAppService.SearchResponse response = service.search("skill", null, "newest", 0, 1, null, null);
+
+        assertEquals(1, response.items().size());
+        assertEquals(1, response.items().getFirst().labels().size());
+        assertEquals("智测", response.items().getFirst().labels().getFirst().displayName());
+        assertEquals("scope-zhice", response.items().getFirst().labels().getFirst().slug());
     }
 
     @Test

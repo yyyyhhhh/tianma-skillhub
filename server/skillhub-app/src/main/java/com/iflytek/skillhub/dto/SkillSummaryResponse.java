@@ -23,5 +23,6 @@ public record SkillSummaryResponse(
         String resolutionMode,
         String packageType,
         String department,
-        Long viewCount
+        Long viewCount,
+        java.util.List<SkillLabelDto> labels
 ) {}

@@ -99,9 +99,15 @@ vi.mock('@/shared/hooks/use-skill-queries', () => ({
 vi.mock('@/shared/hooks/use-label-queries', () => ({
   useVisibleLabels: () => ({
     data: [
-      { slug: 'code-generation', type: 'RECOMMENDED', displayName: 'Code Generation' },
-      { slug: 'official', type: 'RECOMMENDED', displayName: 'Official' },
+      { slug: 'scope-zhimou', type: 'RECOMMENDED', displayName: '智谋' },
+      { slug: 'scope-zhice', type: 'RECOMMENDED', displayName: '智测' },
     ],
+  }),
+}))
+
+vi.mock('@/shared/hooks/use-dashboard-queries', () => ({
+  useAssetDepartments: () => ({
+    data: ['域名管理产品部', '溯源产品部'],
   }),
 }))
 
@@ -133,7 +139,7 @@ describe('SearchPage', () => {
     useSearchMock.mockReturnValue({
       q: 'agent',
       namespace: 'team-ai',
-      label: 'code-generation',
+      label: 'req-analysis',
       sort: 'downloads',
       page: 1,
       starredOnly: false,
@@ -150,12 +156,17 @@ describe('SearchPage', () => {
     })
   })
 
-  it('marks the selected label button as active on initial render', () => {
+  it('renders the three filter rows and marks the selected tag as active', () => {
     const html = renderToStaticMarkup(<SearchPage />)
 
-    expect(html).toContain('Code Generation')
-    expect(findButton('Code Generation').variant).toBe('default')
-    expect(findButton('Official').variant).toBe('outline')
+    expect(html).toContain('search.filters.businessCategory')
+    expect(html).toContain('search.filters.department')
+    expect(html).toContain('search.filters.tags')
+    expect(html).toContain('#需求分析')
+    expect(findButton('#需求分析').variant).toBe('default')
+    expect(findButton('智谋').variant).toBe('default')
+    expect(findButton('智测').variant).toBe('outline')
+    expect(findButton('域名管理产品部').variant).toBe('outline')
   })
 
   it('wraps the filter chip row so many labels can flow onto multiple lines', () => {
@@ -164,10 +175,10 @@ describe('SearchPage', () => {
     expect(html).toContain('flex flex-wrap items-center gap-2')
   })
 
-  it('toggles the selected label off and resets paging', () => {
+  it('toggles the selected tag off and resets paging', () => {
     renderToStaticMarkup(<SearchPage />)
 
-    findButton('Code Generation').onClick?.()
+    findButton('#需求分析').onClick?.()
 
     expect(navigateMock).toHaveBeenCalledWith({
       to: '/search',
@@ -192,7 +203,7 @@ describe('SearchPage', () => {
       search: {
         q: 'agent',
         namespace: 'team-ai',
-        label: 'code-generation',
+        label: 'req-analysis',
         sort: 'newest',
         page: 0,
         starredOnly: false,
@@ -211,7 +222,7 @@ describe('SearchPage', () => {
       search: {
         q: 'agent',
         namespace: 'team-ai',
-        label: 'code-generation',
+        label: 'req-analysis',
         sort: 'downloads',
         page: 2,
         starredOnly: false,
@@ -222,7 +233,7 @@ describe('SearchPage', () => {
       search: {
         q: 'agent',
         namespace: 'team-ai',
-        label: 'code-generation',
+        label: 'req-analysis',
         sort: 'downloads',
         page: 0,
         starredOnly: true,
@@ -236,7 +247,7 @@ describe('SearchPage', () => {
     expect(searchSkillParams[0]).toMatchObject({
       q: 'agent',
       namespace: 'team-ai',
-      label: 'code-generation',
+      label: 'req-analysis',
       sort: 'downloads',
       page: 1,
       size: 12,
@@ -253,7 +264,7 @@ describe('SearchPage', () => {
       search: {
         q: 'onboarding',
         namespace: 'product-team',
-        label: 'code-generation',
+        label: 'req-analysis',
         sort: 'downloads',
         page: 0,
         starredOnly: false,
@@ -311,5 +322,24 @@ describe('SearchPage', () => {
     expect(html).toContain('empty-state')
     expect(html).toContain('search.noResults')
     expect(html).not.toContain('search.enterKeyword')
+  })
+
+  it('filters by functional department pills', () => {
+    renderToStaticMarkup(<SearchPage />)
+
+    findButton('域名管理产品部').onClick?.()
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: '/search',
+      search: {
+        q: 'agent',
+        namespace: 'team-ai',
+        label: 'req-analysis',
+        sort: 'downloads',
+        starredOnly: false,
+        department: '域名管理产品部',
+        page: 0,
+      },
+    })
   })
 })

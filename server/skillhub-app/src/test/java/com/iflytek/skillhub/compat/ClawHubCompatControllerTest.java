@@ -117,7 +117,8 @@ class ClawHubCompatControllerTest {
                                 "PUBLISHED",
                                 "SKILL",
                                 null,
-                                0L
+                                0L,
+                                List.of()
                         )),
                         1,
                         0,

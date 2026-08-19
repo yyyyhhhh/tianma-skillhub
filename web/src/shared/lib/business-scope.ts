@@ -87,3 +87,90 @@ export function getBusinessSubTags(scope: string): readonly string[] {
   }
   return []
 }
+
+export const BUSINESS_SCOPE_SLUGS: Record<BusinessScope, string> = {
+  智谋: 'scope-zhimou',
+  智码: 'scope-zhima',
+  智测: 'scope-zhice',
+  智御: 'scope-zhiyu',
+  智运: 'scope-zhiyun',
+  其他: 'scope-other',
+}
+
+export const BUSINESS_SUBTAG_SLUGS: Record<string, string> = {
+  nesma拆分: 'nesma-split',
+  需求分析: 'req-analysis',
+  需求设计: 'req-design',
+  COSMIC拆分: 'cosmic-split',
+  代码知识库: 'code-kb',
+  SDD开发: 'sdd-dev',
+  '代码Review': 'code-review',
+  代码生成: 'code-gen',
+  代码扫描: 'code-scan',
+  解析功能点: 'parse-features',
+  接口测试: 'api-test',
+  功能测试: 'func-test',
+  性能测试: 'perf-test',
+  白盒测试: 'whitebox-test',
+  黑盒测试: 'blackbox-test',
+  合规审计: 'compliance-audit',
+  测试用例生成: 'testcase-gen',
+  自动化UI测试: 'auto-ui-test',
+  渗透测试: 'pentest',
+  安全扫描: 'sec-scan',
+  漏洞验证: 'vuln-verify',
+  部署运维: 'deploy-ops',
+  故障定位: 'fault-locate',
+  知识问答: 'kb-qa',
+  销售: 'sales',
+  售前: 'presales',
+  项目画像: 'project-profile',
+  技术规范: 'tech-spec',
+  运营: 'operations',
+  通用工具: 'general-tools',
+  规范文档: 'spec-docs',
+  数据服务: 'data-service',
+}
+
+export const COLLAPSED_SEARCH_TAG_COUNT = 8
+
+export function isBusinessScopeSlug(slug: string) {
+  return slug.startsWith('scope-')
+}
+
+export function slugForBusinessLabel(displayName: string) {
+  if (displayName in BUSINESS_SCOPE_SLUGS) {
+    return BUSINESS_SCOPE_SLUGS[displayName as BusinessScope]
+  }
+  return BUSINESS_SUBTAG_SLUGS[displayName]
+}
+
+export function findScopeForSubTag(tag: string): BusinessScope | undefined {
+  return BUSINESS_SCOPES.find((scope) => (BUSINESS_SCOPE_SUBTAGS[scope] as readonly string[]).includes(tag))
+}
+
+export function findScopeForLabelSlug(slug: string): BusinessScope | undefined {
+  const scopeMatch = (Object.entries(BUSINESS_SCOPE_SLUGS) as Array<[BusinessScope, string]>).find(([, value]) => value === slug)
+  if (scopeMatch) {
+    return scopeMatch[0]
+  }
+  const tagMatch = Object.entries(BUSINESS_SUBTAG_SLUGS).find(([, value]) => value === slug)
+  if (tagMatch) {
+    return findScopeForSubTag(tagMatch[0])
+  }
+  return undefined
+}
+
+export function getAllBusinessSubTags(): string[] {
+  return BUSINESS_SCOPES.flatMap((scope) => [...BUSINESS_SCOPE_SUBTAGS[scope]])
+}
+
+export function listBusinessSubTagOptions(scope?: string): Array<{ slug: string; displayName: string }> {
+  const names = scope ? [...getBusinessSubTags(scope)] : getAllBusinessSubTags()
+  return names
+    .map((displayName) => {
+      const slug = slugForBusinessLabel(displayName)
+      return slug ? { slug, displayName } : null
+    })
+    .filter((item): item is { slug: string; displayName: string } => item !== null)
+}

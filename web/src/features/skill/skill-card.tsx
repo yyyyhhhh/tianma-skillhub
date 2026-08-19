@@ -1,11 +1,29 @@
-import type { SkillSummary } from '@/api/types'
+import { Link } from '@tanstack/react-router'
+import type { LabelItem, SkillSummary } from '@/api/types'
 import { useAuth } from '@/features/auth/use-auth'
 import { useStarredIdSet } from '@/features/social/use-star'
 import { Card } from '@/shared/ui/card'
 import { NamespaceBadge } from '@/shared/components/namespace-badge'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
+import { getSkillLabelSearch } from '@/shared/lib/skill-navigation'
+import { isBusinessScopeSlug } from '@/shared/lib/business-scope'
+import { cn } from '@/shared/lib/utils'
 import { Bookmark } from 'lucide-react'
+
+const CARD_LABEL_LIMIT = 4
+
+function cardLabels(labels: LabelItem[]) {
+  const ordered = [...labels].sort((left, right) => {
+    const leftRank = isBusinessScopeSlug(left.slug) ? 0 : 1
+    const rightRank = isBusinessScopeSlug(right.slug) ? 0 : 1
+    return leftRank - rightRank
+  })
+  return {
+    shown: ordered.slice(0, CARD_LABEL_LIMIT),
+    extra: Math.max(0, ordered.length - CARD_LABEL_LIMIT),
+  }
+}
 
 interface SkillCardProps {
   skill: SkillSummary
@@ -23,6 +41,8 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
   const showStarredHighlight = highlightStarred && isAuthenticated && starredIds.has(skill.id)
   const headlineVersion = getHeadlineVersion(skill)
   const isInteractive = typeof onClick === 'function'
+  const { shown: labels, extra: extraLabelCount } = cardLabels(skill.labels ?? [])
+  const hasChips = Boolean(skill.department) || labels.length > 0
 
   return (
     <Card
@@ -43,13 +63,6 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
       tabIndex={isInteractive ? 0 : undefined}
     >
       <div className="flex h-full flex-col">
-        {skill.department && (
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 truncate max-w-[10rem]">
-              {skill.department}
-            </span>
-          </div>
-        )}
         <div className="flex items-start justify-between mb-3">
           <div className="space-y-2">
             <h3 className="font-semibold text-lg group-hover:text-primary transition-colors" style={{ color: 'hsl(var(--foreground))' }}>
@@ -62,9 +75,42 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
         </div>
 
         {skill.summary && (
-          <p className="text-sm text-muted-foreground mb-4 line-clamp-2 leading-relaxed">
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2 leading-relaxed">
             {skill.summary}
           </p>
+        )}
+
+        {hasChips && (
+          <div className="flex items-center gap-1.5 mb-4 flex-wrap">
+            {skill.department && (
+              <span className="inline-flex items-center rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 truncate max-w-[10rem]">
+                {skill.department}
+              </span>
+            )}
+            {labels.map((label) => (
+              <Link
+                key={label.slug}
+                to="/search"
+                search={getSkillLabelSearch(label.slug)}
+                onClick={(event) => event.stopPropagation()}
+                className={cn(
+                  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2',
+                  isBusinessScopeSlug(label.slug)
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                    : label.type === 'PRIVILEGED'
+                      ? 'border-amber-500/40 bg-amber-100 text-amber-900 hover:bg-amber-200/80'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100',
+                )}
+              >
+                {isBusinessScopeSlug(label.slug) ? label.displayName : `#${label.displayName}`}
+              </Link>
+            ))}
+            {extraLabelCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+                +{extraLabelCount}
+              </span>
+            )}
+          </div>
         )}
 
         <div className="mt-auto flex items-center gap-4 text-xs text-muted-foreground">

@@ -14,6 +14,7 @@ import com.iflytek.skillhub.dto.ApiResponseFactory;
 import com.iflytek.skillhub.dto.PublishResponse;
 import com.iflytek.skillhub.metrics.SkillHubMetrics;
 import com.iflytek.skillhub.ratelimit.RateLimit;
+import com.iflytek.skillhub.service.PublishBusinessLabelService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,15 +35,18 @@ public class SkillPublishController extends BaseApiController {
     private final SkillPublishService skillPublishService;
     private final SkillPackageArchiveExtractor skillPackageArchiveExtractor;
     private final SkillHubMetrics skillHubMetrics;
+    private final PublishBusinessLabelService publishBusinessLabelService;
 
     public SkillPublishController(SkillPublishService skillPublishService,
                                   SkillPackageArchiveExtractor skillPackageArchiveExtractor,
                                   ApiResponseFactory responseFactory,
-                                  SkillHubMetrics skillHubMetrics) {
+                                  SkillHubMetrics skillHubMetrics,
+                                  PublishBusinessLabelService publishBusinessLabelService) {
         super(responseFactory);
         this.skillPublishService = skillPublishService;
         this.skillPackageArchiveExtractor = skillPackageArchiveExtractor;
         this.skillHubMetrics = skillHubMetrics;
+        this.publishBusinessLabelService = publishBusinessLabelService;
     }
 
     /**
@@ -102,6 +106,13 @@ public class SkillPublishController extends BaseApiController {
                 principal.platformRoles(),
                 confirmWarnings,
                 publishMetadata
+        );
+
+        publishBusinessLabelService.attachAfterPublish(
+                publishResult.skillId(),
+                publishMetadata.businessScope(),
+                publishMetadata.businessSubTags(),
+                principal.userId()
         );
 
         PublishResponse response = new PublishResponse(

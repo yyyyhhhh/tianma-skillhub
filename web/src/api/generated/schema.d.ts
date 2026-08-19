@@ -4296,6 +4296,7 @@ export interface components {
             department?: string;
             /** Format: int64 */
             viewCount?: number;
+            labels?: components["schemas"]["SkillLabelDto"][];
         };
         ApiResponseBoolean: {
             /** Format: int32 */

@@ -80,6 +80,23 @@ public class SkillLabelAppService {
         return toDtos(skillLabelService.listSkillLabels(skillId));
     }
 
+    public Map<Long, List<SkillLabelDto>> listSkillLabelsBySkillIds(List<Long> skillIds) {
+        if (skillIds == null || skillIds.isEmpty()) {
+            return Map.of();
+        }
+        List<SkillLabel> skillLabels = skillLabelService.listSkillLabelsBySkillIds(skillIds);
+        if (skillLabels.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, List<SkillLabel>> grouped = skillLabels.stream()
+                .collect(Collectors.groupingBy(SkillLabel::getSkillId));
+        Map<Long, List<SkillLabelDto>> result = new java.util.LinkedHashMap<>();
+        for (Map.Entry<Long, List<SkillLabel>> entry : grouped.entrySet()) {
+            result.put(entry.getKey(), toDtos(entry.getValue()));
+        }
+        return result;
+    }
+
     @Transactional
     public SkillLabelDto attachLabel(String namespaceSlug,
                                      String skillSlug,

@@ -63,6 +63,9 @@ class SkillPublishControllerTest {
     @MockBean
     private SkillHubMetrics skillHubMetrics;
 
+    @MockBean
+    private com.iflytek.skillhub.service.PublishBusinessLabelService publishBusinessLabelService;
+
     @Test
     void publish_recordsMetricsAfterSuccess() throws Exception {
         SkillVersion version = new SkillVersion(12L, "1.0.0", "usr_1");

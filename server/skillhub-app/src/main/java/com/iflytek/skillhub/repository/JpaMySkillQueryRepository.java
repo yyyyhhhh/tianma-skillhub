@@ -9,10 +9,13 @@ import com.iflytek.skillhub.domain.review.ReviewTaskStatus;
 import com.iflytek.skillhub.domain.skill.Skill;
 import com.iflytek.skillhub.domain.skill.SkillStatus;
 import com.iflytek.skillhub.domain.skill.service.SkillLifecycleProjectionService;
+import com.iflytek.skillhub.dto.SkillLabelDto;
 import com.iflytek.skillhub.dto.SkillLifecycleVersionResponse;
 import com.iflytek.skillhub.dto.SkillSummaryResponse;
+import com.iflytek.skillhub.service.SkillLabelAppService;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Repository;
@@ -23,13 +26,16 @@ public class JpaMySkillQueryRepository implements MySkillQueryRepository {
     private final NamespaceRepository namespaceRepository;
     private final PromotionRequestRepository promotionRequestRepository;
     private final SkillLifecycleProjectionService skillLifecycleProjectionService;
+    private final SkillLabelAppService skillLabelAppService;
 
     public JpaMySkillQueryRepository(NamespaceRepository namespaceRepository,
                                      PromotionRequestRepository promotionRequestRepository,
-                                     SkillLifecycleProjectionService skillLifecycleProjectionService) {
+                                     SkillLifecycleProjectionService skillLifecycleProjectionService,
+                                     SkillLabelAppService skillLabelAppService) {
         this.namespaceRepository = namespaceRepository;
         this.promotionRequestRepository = promotionRequestRepository;
         this.skillLifecycleProjectionService = skillLifecycleProjectionService;
+        this.skillLabelAppService = skillLabelAppService;
     }
 
     @Override
@@ -41,14 +47,22 @@ public class JpaMySkillQueryRepository implements MySkillQueryRepository {
                         skills.stream().map(Skill::getNamespaceId).distinct().toList())
                 .stream()
                 .collect(Collectors.toMap(Namespace::getId, Function.identity()));
+        List<Long> skillIds = skills.stream().map(Skill::getId).toList();
+        Map<Long, List<SkillLabelDto>> labelsBySkillId =
+                Optional.ofNullable(skillLabelAppService.listSkillLabelsBySkillIds(skillIds)).orElseGet(Map::of);
         return skills.stream()
-                .map(skill -> toSummaryResponse(skill, currentUserId, namespacesById))
+                .map(skill -> toSummaryResponse(
+                        skill,
+                        currentUserId,
+                        namespacesById,
+                        labelsBySkillId.getOrDefault(skill.getId(), List.of())))
                 .toList();
     }
 
     private SkillSummaryResponse toSummaryResponse(Skill skill,
                                                    String currentUserId,
-                                                   Map<Long, Namespace> namespacesById) {
+                                                   Map<Long, Namespace> namespacesById,
+                                                   List<SkillLabelDto> labels) {
         Namespace namespace = namespacesById.get(skill.getNamespaceId());
         SkillLifecycleProjectionService.Projection projection = skillLifecycleProjectionService.projectForViewer(
                 skill,
@@ -82,7 +96,8 @@ public class JpaMySkillQueryRepository implements MySkillQueryRepository {
                 projection.resolutionMode().name(),
                 skill.getPackageType().name(),
                 skill.getDepartment(),
-                skill.getViewCount()
+                skill.getViewCount(),
+                labels == null ? List.of() : labels
         );
     }
 

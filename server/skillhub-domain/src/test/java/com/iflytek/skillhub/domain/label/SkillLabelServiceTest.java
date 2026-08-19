@@ -1,6 +1,7 @@
 package com.iflytek.skillhub.domain.label;
 
 import com.iflytek.skillhub.domain.skill.SkillRepository;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,5 +26,19 @@ class SkillLabelServiceTest {
         ));
 
         assertEquals("skillhub.label.max-per-skill must be greater than 0", ex.getMessage());
+    }
+
+    @Test
+    void listSkillLabelsBySkillIdsShouldReturnEmptyForBlankInput() {
+        SkillLabelService service = new SkillLabelService(
+                skillRepository,
+                labelDefinitionRepository,
+                skillLabelRepository,
+                labelPermissionChecker,
+                10
+        );
+
+        assertEquals(List.of(), service.listSkillLabelsBySkillIds(List.of()));
+        assertEquals(List.of(), service.listSkillLabelsBySkillIds(null));
     }
 }

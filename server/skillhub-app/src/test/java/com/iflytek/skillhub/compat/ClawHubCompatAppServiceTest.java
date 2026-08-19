@@ -33,6 +33,7 @@ import com.iflytek.skillhub.domain.skill.service.SkillPublishService;
 import com.iflytek.skillhub.domain.skill.service.SkillQueryService;
 import com.iflytek.skillhub.domain.social.SkillStarService;
 import com.iflytek.skillhub.observability.RequestIdAccessor;
+import com.iflytek.skillhub.service.PublishBusinessLabelService;
 import com.iflytek.skillhub.service.SkillSearchAppService;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -54,6 +55,7 @@ class ClawHubCompatAppServiceTest {
     private final CompatSkillLookupService compatSkillLookupService = mock(CompatSkillLookupService.class);
     private final SkillStarService skillStarService = mock(SkillStarService.class);
     private final ClawHubUploadSessionService uploadSessionService = mock(ClawHubUploadSessionService.class);
+    private final PublishBusinessLabelService publishBusinessLabelService = mock(PublishBusinessLabelService.class);
 
     private final ClawHubCompatAppService service = new ClawHubCompatAppService(
             new CanonicalSlugMapper(),
@@ -67,6 +69,7 @@ class ClawHubCompatAppServiceTest {
             skillStarService,
             new RequestIdAccessor(),
             uploadSessionService,
+            publishBusinessLabelService,
             "https://skillhub.example"
     );
 

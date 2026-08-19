@@ -208,6 +208,11 @@
     "placeholder": "搜索技能...",
     "filters": {
       "label": "筛选:",
+      "businessCategory": "业务分类",
+      "department": "职能部门筛选",
+      "tags": "标签筛选",
+      "expandTags": "... 展开全部 ({{count}})",
+      "collapseTags": "收起",
       "allDepartments": "全部职能"
     },
     "sort": {
@@ -1404,7 +1409,7 @@
     "departmentPlaceholder": "选择所属职能",
     "departmentHint": "可选：后端开发 / 前端开发 / UI / 产品 / 测试 / 运维",
     "businessScope": "业务范畴",
-    "businessScopeHint": "发布后自动挂载标签，可选择业务范畴",
+    "businessScopeHint": "发布后自动挂载为系统标签，可在搜索与详情页查看",
     "businessScopeRequired": "请选择业务范畴",
     "businessSubTags": "业务子标签",
     "businessSubTagsHint": "选择业务子标签进一步细化分类",

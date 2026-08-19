@@ -31,6 +31,7 @@ import com.iflytek.skillhub.domain.social.SkillStarService;
 import com.iflytek.skillhub.dto.SkillSummaryResponse;
 import com.iflytek.skillhub.observability.RequestIdAccessor;
 import com.iflytek.skillhub.service.SkillSearchAppService;
+import com.iflytek.skillhub.service.PublishBusinessLabelService;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -65,6 +66,7 @@ public class ClawHubCompatAppService {
     private final SkillStarService skillStarService;
     private final RequestIdAccessor requestIdAccessor;
     private final ClawHubUploadSessionService uploadSessionService;
+    private final PublishBusinessLabelService publishBusinessLabelService;
     private final String publicBaseUrl;
 
     public ClawHubCompatAppService(CanonicalSlugMapper mapper,
@@ -78,6 +80,7 @@ public class ClawHubCompatAppService {
                                    SkillStarService skillStarService,
                                    RequestIdAccessor requestIdAccessor,
                                    ClawHubUploadSessionService uploadSessionService,
+                                   PublishBusinessLabelService publishBusinessLabelService,
                                    @Value("${skillhub.public.base-url:}") String publicBaseUrl) {
         this.mapper = mapper;
         this.skillSearchAppService = skillSearchAppService;
@@ -90,6 +93,7 @@ public class ClawHubCompatAppService {
         this.skillStarService = skillStarService;
         this.requestIdAccessor = requestIdAccessor;
         this.uploadSessionService = uploadSessionService;
+        this.publishBusinessLabelService = publishBusinessLabelService;
         this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.trim();
     }
 
@@ -352,6 +356,7 @@ public class ClawHubCompatAppService {
                 confirmWarnings,
                 metadata
         );
+        attachBusinessLabels(result, metadata, principal.userId());
         recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
                 "{\"namespace\":\"" + namespace + "\",\"slug\":\"" + extracted.payload().slug()
                         + "\",\"packageType\":\"" + packageType.name() + "\"}");
@@ -383,6 +388,7 @@ public class ClawHubCompatAppService {
                 confirmWarnings,
                 metadata
         );
+        attachBusinessLabels(result, metadata, principal.userId());
         recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
                 "{\"namespace\":\"" + namespace + "\",\"packageType\":\"" + packageType.name() + "\"}");
         return toPublishResponse(result);
@@ -489,6 +495,7 @@ public class ClawHubCompatAppService {
                     confirmWarnings,
                     metadata
             );
+            attachBusinessLabels(result, metadata, principal.userId());
             recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
                     "{\"namespace\":\"" + namespace + "\",\"slug\":\"" + request.slug()
                             + "\",\"packageType\":\"" + packageType.name() + "\"}");
@@ -505,6 +512,17 @@ public class ClawHubCompatAppService {
                 principal.userId(),
                 principal.displayName(),
                 principal.avatarUrl()
+        );
+    }
+
+    private void attachBusinessLabels(SkillPublishService.PublishResult result,
+                                      PublishMetadata metadata,
+                                      String operatorId) {
+        publishBusinessLabelService.attachAfterPublish(
+                result.skillId(),
+                metadata.businessScope(),
+                metadata.businessSubTags(),
+                operatorId
         );
     }
 

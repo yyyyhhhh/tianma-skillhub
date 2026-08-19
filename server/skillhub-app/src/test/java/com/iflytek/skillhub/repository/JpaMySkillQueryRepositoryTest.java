@@ -13,8 +13,11 @@ import com.iflytek.skillhub.domain.skill.SkillVersionRepository;
 import com.iflytek.skillhub.domain.skill.SkillVersionStatus;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
 import com.iflytek.skillhub.domain.skill.service.SkillLifecycleProjectionService;
+import com.iflytek.skillhub.dto.SkillLabelDto;
+import com.iflytek.skillhub.service.SkillLabelAppService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,9 @@ class JpaMySkillQueryRepositoryTest {
     @Mock
     private SkillVersionRepository skillVersionRepository;
 
+    @Mock
+    private SkillLabelAppService skillLabelAppService;
+
     private JpaMySkillQueryRepository repository;
 
     @BeforeEach
@@ -42,7 +48,8 @@ class JpaMySkillQueryRepositoryTest {
         repository = new JpaMySkillQueryRepository(
                 namespaceRepository,
                 promotionRequestRepository,
-                new SkillLifecycleProjectionService(skillVersionRepository)
+                new SkillLifecycleProjectionService(skillVersionRepository),
+                skillLabelAppService
         );
     }
 
@@ -72,6 +79,8 @@ class JpaMySkillQueryRepositoryTest {
         given(skillVersionRepository.findBySkillId(2L)).willReturn(List.of(publishedVersion, rejectedVersion));
         given(promotionRequestRepository.findBySourceSkillIdAndStatus(2L, ReviewTaskStatus.PENDING)).willReturn(Optional.empty());
         given(promotionRequestRepository.findBySourceSkillIdAndStatus(2L, ReviewTaskStatus.APPROVED)).willReturn(Optional.empty());
+        given(skillLabelAppService.listSkillLabelsBySkillIds(List.of(2L)))
+                .willReturn(Map.of(2L, List.of(new SkillLabelDto("scope-zhice", "RECOMMENDED", "智测"))));
 
         var responses = repository.getSkillSummaries(List.of(skill), "user-1");
 
@@ -81,6 +90,7 @@ class JpaMySkillQueryRepositoryTest {
         assertThat(responses.get(0).ownerPreviewVersion()).isNotNull();
         assertThat(responses.get(0).ownerPreviewVersion().status()).isEqualTo("REJECTED");
         assertThat(responses.get(0).canSubmitPromotion()).isTrue();
+        assertThat(responses.get(0).labels()).extracting(SkillLabelDto::displayName).containsExactly("智测");
     }
 
     @Test

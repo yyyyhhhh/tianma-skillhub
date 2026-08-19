@@ -208,6 +208,11 @@
     "placeholder": "Search skills...",
     "filters": {
       "label": "Filter:",
+      "businessCategory": "Business category",
+      "department": "Functional department",
+      "tags": "Tags",
+      "expandTags": "... Expand all ({{count}})",
+      "collapseTags": "Collapse",
       "allDepartments": "All functions"
     },
     "sort": {
@@ -1403,7 +1408,7 @@
     "departmentPlaceholder": "Select function",
     "departmentHint": "Choose: Backend / Frontend / UI / Product / QA / Ops",
     "businessScope": "Business scope",
-    "businessScopeHint": "Attached as a tag after publish",
+    "businessScopeHint": "Auto-attached as system labels after publish; visible in search and detail",
     "businessScopeRequired": "Please select a business scope",
     "businessSubTags": "Business sub-tags",
     "businessSubTagsHint": "Select sub-tags to further refine classification",

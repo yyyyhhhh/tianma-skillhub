@@ -5,8 +5,10 @@ import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
 import com.iflytek.skillhub.domain.shared.exception.DomainForbiddenException;
 import com.iflytek.skillhub.domain.skill.Skill;
 import com.iflytek.skillhub.domain.skill.SkillRepository;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,13 @@ public class SkillLabelService {
         return skillLabelRepository.findBySkillId(skillId);
     }
 
+    public List<SkillLabel> listSkillLabelsBySkillIds(List<Long> skillIds) {
+        if (skillIds == null || skillIds.isEmpty()) {
+            return List.of();
+        }
+        return skillLabelRepository.findBySkillIdIn(skillIds);
+    }
+
     public List<SkillLabel> listByLabelId(Long labelId) {
         return skillLabelRepository.findByLabelId(labelId);
     }
@@ -58,6 +67,46 @@ public class SkillLabelService {
         }
         return skillLabelRepository.findBySkillIdAndLabelId(skillId, labelDefinition.getId())
                 .orElseGet(() -> skillLabelRepository.save(new SkillLabel(skillId, labelDefinition.getId(), operatorId)));
+    }
+
+    /**
+     * System attach used by publish auto-mount. Skips RBAC (publisher already owns the skill)
+     * and silently ignores unknown / already-attached labels so publish is not blocked.
+     */
+    @Transactional
+    public List<SkillLabel> attachLabelsForPublish(Long skillId, List<String> labelSlugs, String operatorId) {
+        if (labelSlugs == null || labelSlugs.isEmpty()) {
+            return List.of();
+        }
+        findSkill(skillId);
+        List<SkillLabel> attached = new ArrayList<>();
+        for (String rawSlug : labelSlugs) {
+            if (rawSlug == null || rawSlug.isBlank()) {
+                continue;
+            }
+            final String normalizedSlug;
+            try {
+                normalizedSlug = LabelSlugValidator.normalize(rawSlug);
+            } catch (DomainBadRequestException ex) {
+                continue;
+            }
+            Optional<LabelDefinition> definition = labelDefinitionRepository.findBySlugIgnoreCase(normalizedSlug);
+            if (definition.isEmpty()) {
+                continue;
+            }
+            LabelDefinition labelDefinition = definition.get();
+            long currentCount = skillLabelRepository.countBySkillId(skillId);
+            Optional<SkillLabel> existing = skillLabelRepository.findBySkillIdAndLabelId(skillId, labelDefinition.getId());
+            if (existing.isPresent()) {
+                attached.add(existing.get());
+                continue;
+            }
+            if (currentCount >= maxLabelsPerSkill) {
+                break;
+            }
+            attached.add(skillLabelRepository.save(new SkillLabel(skillId, labelDefinition.getId(), operatorId)));
+        }
+        return List.copyOf(attached);
     }
 
     @Transactional

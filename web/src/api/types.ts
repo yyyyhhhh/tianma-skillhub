@@ -155,6 +155,12 @@ export interface BatchMemberResponse {
 }
 
 // Skill types
+export type LabelItem = Omit<components['schemas']['SkillLabelDto'], 'slug' | 'type' | 'displayName'> & {
+  slug: string
+  type: 'RECOMMENDED' | 'PRIVILEGED' | string
+  displayName: string
+}
+
 export interface SkillSummary {
   id: number
   slug: string
@@ -176,12 +182,7 @@ export interface SkillSummary {
   packageType?: string
   department?: string
   viewCount?: number
-}
-
-export type LabelItem = Omit<components['schemas']['SkillLabelDto'], 'slug' | 'type' | 'displayName'> & {
-  slug: string
-  type: 'RECOMMENDED' | 'PRIVILEGED' | string
-  displayName: string
+  labels?: LabelItem[]
 }
 
 export type LabelTranslation = Omit<components['schemas']['LabelTranslationResponse'], 'locale' | 'displayName'> & {

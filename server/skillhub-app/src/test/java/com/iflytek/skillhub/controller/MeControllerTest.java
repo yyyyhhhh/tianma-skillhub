@@ -78,7 +78,8 @@ class MeControllerTest {
                                 "PUBLISHED",
                                 "SKILL",
                                 null,
-                                0L
+                                0L,
+                                List.of()
                         )),
                         9,
                         1,
