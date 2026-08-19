@@ -54,12 +54,26 @@ function incrementPagedSummaryList(
   }
 }
 
+function isSkillDetailQueryKey(key: readonly unknown[], target: SkillIdentity): boolean {
+  return Array.isArray(key)
+    && key[0] === 'skills'
+    && typeof key[1] === 'string'
+    && key[2] === target.slug
+    && normalizeNamespace(key[1]) === normalizeNamespace(target.namespace)
+    && key.length === 4
+    && typeof key[3] === 'string'
+    && key[3] !== 'versions'
+}
+
 export function incrementSkillDownloadCount(
   queryClient: QueryClient,
   target: SkillIdentity,
 ): void {
-  queryClient.setQueryData<SkillDetail>(
-    ['skills', target.namespace, target.slug],
+  // Detail queries are keyed as ['skills', ns, slug, locale].
+  queryClient.setQueriesData<SkillDetail>(
+    {
+      predicate: (query) => isSkillDetailQueryKey(query.queryKey, target),
+    },
     (current) => incrementDetailDownloadCount(current, target),
   )
   queryClient.setQueryData<SkillSummary[]>(
@@ -74,4 +88,20 @@ export function incrementSkillDownloadCount(
     { queryKey: ['skills', 'search'] },
     (current) => incrementPagedSummaryList(current, target),
   )
+}
+
+export function parseContentDispositionFilename(header: string | null): string | null {
+  if (!header) {
+    return null
+  }
+  const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(header)
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ''))
+    } catch {
+      return utf8Match[1].trim().replace(/^"|"$/g, '')
+    }
+  }
+  const plainMatch = /filename="?([^";]+)"?/i.exec(header)
+  return plainMatch?.[1]?.trim() ?? null
 }

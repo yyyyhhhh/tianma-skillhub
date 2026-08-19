@@ -2,6 +2,8 @@ package com.iflytek.skillhub.service;
 
 import com.iflytek.skillhub.auth.entity.Role;
 import com.iflytek.skillhub.auth.entity.UserRoleBinding;
+import com.iflytek.skillhub.auth.local.LocalAuthService;
+import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.auth.repository.RoleRepository;
 import com.iflytek.skillhub.auth.repository.UserRoleBindingRepository;
 import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
@@ -44,16 +46,54 @@ public class AdminUserAppService {
     private final UserAccountRepository userAccountRepository;
     private final UserRoleBindingRepository userRoleBindingRepository;
     private final RoleRepository roleRepository;
+    private final LocalAuthService localAuthService;
 
     public AdminUserAppService(
             AdminUserSearchRepository adminUserSearchRepository,
             UserAccountRepository userAccountRepository,
             UserRoleBindingRepository userRoleBindingRepository,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            LocalAuthService localAuthService) {
         this.adminUserSearchRepository = adminUserSearchRepository;
         this.userAccountRepository = userAccountRepository;
         this.userRoleBindingRepository = userRoleBindingRepository;
         this.roleRepository = roleRepository;
+        this.localAuthService = localAuthService;
+    }
+
+    @Transactional
+    public AdminUserSummaryResponse createLocalUser(String username,
+                                                    String password,
+                                                    String email,
+                                                    String roleCode,
+                                                    Set<String> actorPlatformRoles) {
+        String normalizedRoleCode = StringUtils.hasText(roleCode) ? normalizeRoleCode(roleCode) : USER_ROLE;
+        if (SUPER_ADMIN_ROLE.equals(normalizedRoleCode)
+                && (actorPlatformRoles == null || !actorPlatformRoles.contains(SUPER_ADMIN_ROLE))) {
+            throw new DomainForbiddenException("error.admin.user.role.superAdmin.assignDenied");
+        }
+        if (!USER_ROLE.equals(normalizedRoleCode)) {
+            roleRepository.findByCode(normalizedRoleCode)
+                    .orElseThrow(() -> new DomainBadRequestException("error.admin.user.role.invalid", roleCode));
+        }
+
+        PlatformPrincipal principal = localAuthService.registerByAdmin(username, password, email);
+        if (!USER_ROLE.equals(normalizedRoleCode)) {
+            updateUserRole(principal.userId(), normalizedRoleCode, actorPlatformRoles);
+        }
+
+        UserAccount user = loadUser(principal.userId());
+        return new AdminUserSummaryResponse(
+                user.getId(),
+                user.getDisplayName(),
+                user.getEmail(),
+                user.getStatus().name(),
+                withDefaultUserRole(
+                        USER_ROLE.equals(normalizedRoleCode)
+                                ? List.of()
+                                : List.of(normalizedRoleCode)
+                ).stream().sorted().toList(),
+                user.getCreatedAt());
     }
 
     @Transactional(readOnly = true)

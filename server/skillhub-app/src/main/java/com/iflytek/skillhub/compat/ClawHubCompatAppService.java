@@ -2,6 +2,7 @@ package com.iflytek.skillhub.compat;
 
 import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.compat.dto.ClawHubDeleteResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubJsonPublishRequest;
 import com.iflytek.skillhub.compat.dto.ClawHubPublishResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubResolveResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubSearchResponse;
@@ -9,27 +10,39 @@ import com.iflytek.skillhub.compat.dto.ClawHubSkillListResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubSkillResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubStarResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubUnstarResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadFileResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadUrlRequest;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadUrlResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubWhoamiResponse;
 import com.iflytek.skillhub.controller.support.MultipartPackageExtractor;
 import com.iflytek.skillhub.controller.support.ZipPackageExtractor;
 import com.iflytek.skillhub.domain.audit.AuditLogService;
 import com.iflytek.skillhub.domain.namespace.NamespaceRole;
+import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
 import com.iflytek.skillhub.domain.shared.exception.DomainNotFoundException;
+import com.iflytek.skillhub.domain.skill.PackageType;
 import com.iflytek.skillhub.domain.skill.SkillVersion;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
+import com.iflytek.skillhub.domain.skill.service.PublishMetadata;
 import com.iflytek.skillhub.domain.skill.service.SkillPublishService;
 import com.iflytek.skillhub.domain.skill.service.SkillQueryService;
+import com.iflytek.skillhub.domain.skill.validation.PackageEntry;
 import com.iflytek.skillhub.domain.social.SkillStarService;
 import com.iflytek.skillhub.dto.SkillSummaryResponse;
 import com.iflytek.skillhub.observability.RequestIdAccessor;
 import com.iflytek.skillhub.service.SkillSearchAppService;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
 /**
@@ -51,6 +64,8 @@ public class ClawHubCompatAppService {
     private final CompatSkillLookupService compatSkillLookupService;
     private final SkillStarService skillStarService;
     private final RequestIdAccessor requestIdAccessor;
+    private final ClawHubUploadSessionService uploadSessionService;
+    private final String publicBaseUrl;
 
     public ClawHubCompatAppService(CanonicalSlugMapper mapper,
                                    SkillSearchAppService skillSearchAppService,
@@ -61,7 +76,9 @@ public class ClawHubCompatAppService {
                                    AuditLogService auditLogService,
                                    CompatSkillLookupService compatSkillLookupService,
                                    SkillStarService skillStarService,
-                                   RequestIdAccessor requestIdAccessor) {
+                                   RequestIdAccessor requestIdAccessor,
+                                   ClawHubUploadSessionService uploadSessionService,
+                                   @Value("${skillhub.public.base-url:}") String publicBaseUrl) {
         this.mapper = mapper;
         this.skillSearchAppService = skillSearchAppService;
         this.skillQueryService = skillQueryService;
@@ -72,6 +89,8 @@ public class ClawHubCompatAppService {
         this.compatSkillLookupService = compatSkillLookupService;
         this.skillStarService = skillStarService;
         this.requestIdAccessor = requestIdAccessor;
+        this.uploadSessionService = uploadSessionService;
+        this.publicBaseUrl = publicBaseUrl == null ? "" : publicBaseUrl.trim();
     }
 
     public ClawHubSearchResponse search(String q,
@@ -310,41 +329,175 @@ public class ClawHubCompatAppService {
     public ClawHubPublishResponse publishSkill(String payloadJson,
                                                MultipartFile[] files,
                                                boolean confirmWarnings,
+                                               String packageTypeOverride,
                                                PlatformPrincipal principal,
                                                String clientIp,
                                                String userAgent) throws IOException {
         MultipartPackageExtractor.ExtractedPackage extracted = multipartPackageExtractor.extract(files, payloadJson);
         String namespace = determineNamespace(extracted.payload());
+        PublishMetadata metadata = CompatPackageTypeResolver.resolveMetadata(
+                firstNonBlank(packageTypeOverride, extracted.payload().packageType()),
+                extracted.payload().displayName(),
+                extracted.payload().tags(),
+                extracted.payload().categories(),
+                extracted.entries()
+        );
+        PackageType packageType = metadata.packageType();
         SkillPublishService.PublishResult result = skillPublishService.publishFromEntries(
                 namespace,
                 extracted.entries(),
                 principal.userId(),
                 SkillVisibility.PUBLIC,
                 principal.platformRoles(),
-                confirmWarnings
+                confirmWarnings,
+                metadata
         );
         recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
-                "{\"namespace\":\"" + namespace + "\",\"slug\":\"" + extracted.payload().slug() + "\"}");
-        return new ClawHubPublishResponse(result.skillId().toString(), result.version().getId().toString());
+                "{\"namespace\":\"" + namespace + "\",\"slug\":\"" + extracted.payload().slug()
+                        + "\",\"packageType\":\"" + packageType.name() + "\"}");
+        return toPublishResponse(result);
     }
 
     public ClawHubPublishResponse publish(MultipartFile file,
                                           String namespace,
                                           boolean confirmWarnings,
+                                          String packageTypeOverride,
                                           PlatformPrincipal principal,
                                           String clientIp,
                                           String userAgent) throws IOException {
+        List<PackageEntry> entries = zipPackageExtractor.extract(file);
+        PublishMetadata metadata = CompatPackageTypeResolver.resolveMetadata(
+                packageTypeOverride,
+                null,
+                null,
+                null,
+                entries
+        );
+        PackageType packageType = metadata.packageType();
         SkillPublishService.PublishResult result = skillPublishService.publishFromEntries(
                 namespace,
-                zipPackageExtractor.extract(file),
+                entries,
                 principal.userId(),
                 SkillVisibility.PUBLIC,
                 principal.platformRoles(),
-                confirmWarnings
+                confirmWarnings,
+                metadata
         );
         recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
-                "{\"namespace\":\"" + namespace + "\"}");
-        return new ClawHubPublishResponse(result.skillId().toString(), result.version().getId().toString());
+                "{\"namespace\":\"" + namespace + "\",\"packageType\":\"" + packageType.name() + "\"}");
+        return toPublishResponse(result);
+    }
+
+    public ClawHubUploadUrlResponse createUploadUrl(ClawHubUploadUrlRequest request, PlatformPrincipal principal) {
+        ClawHubUploadSessionService.TicketSession session = uploadSessionService.createTicket(
+                principal.userId(),
+                request.path(),
+                request.size(),
+                request.sha256(),
+                request.contentType()
+        );
+        String uploadUrl = buildUploadUrl(session.ticket());
+        return new ClawHubUploadUrlResponse(uploadUrl, session.ticket());
+    }
+
+    public ClawHubUploadFileResponse storeUploadedFile(String ticket,
+                                                       byte[] body,
+                                                       String contentType,
+                                                       PlatformPrincipal principal) {
+        String storageId = uploadSessionService.storeUpload(
+                ticket,
+                principal.userId(),
+                body == null ? new byte[0] : body,
+                contentType
+        );
+        return new ClawHubUploadFileResponse(storageId);
+    }
+
+    public ClawHubPublishResponse publishJson(ClawHubJsonPublishRequest request,
+                                              String packageTypeOverride,
+                                              PlatformPrincipal principal,
+                                              String clientIp,
+                                              String userAgent) {
+        if (request == null || request.files() == null || request.files().isEmpty()) {
+            throw new DomainBadRequestException("error.skill.publish.package.invalid", "files are required");
+        }
+        if (!StringUtils.hasText(request.slug())) {
+            throw new DomainBadRequestException("error.skill.publish.package.invalid", "slug is required");
+        }
+        if (Boolean.FALSE.equals(request.acceptLicenseTerms())) {
+            throw new DomainBadRequestException("error.skill.publish.package.invalid", "acceptLicenseTerms must be true");
+        }
+
+        List<PackageEntry> entries = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        List<String> cleanupIds = new ArrayList<>();
+        try {
+            for (ClawHubJsonPublishRequest.UploadedFile file : request.files()) {
+                if (file == null || !StringUtils.hasText(file.storageId())) {
+                    throw new DomainBadRequestException("error.skill.publish.package.invalid", "storageId is required");
+                }
+                String lookupId = StringUtils.hasText(file.uploadTicket()) ? file.uploadTicket() : file.storageId();
+                cleanupIds.add(lookupId);
+                ClawHubUploadSessionService.LoadedFile loaded = uploadSessionService.loadForPublish(
+                        lookupId,
+                        principal.userId(),
+                        file.path(),
+                        file.sha256()
+                );
+                String path = loaded.path();
+                if (!StringUtils.hasText(path)) {
+                    throw new DomainBadRequestException("error.skill.publish.package.invalid", "file path is required");
+                }
+                if (!seen.add(path)) {
+                    throw new DomainBadRequestException("error.skill.publish.package.invalid", "Duplicate package path: " + path);
+                }
+                entries.add(new PackageEntry(
+                        path,
+                        loaded.content(),
+                        loaded.content().length,
+                        file.contentType() != null ? file.contentType() : "application/octet-stream"
+                ));
+            }
+
+            String namespace = determineNamespaceFromJson(request);
+            boolean confirmWarnings = Boolean.TRUE.equals(request.confirmWarnings());
+            PublishMetadata base = CompatPackageTypeResolver.resolveMetadata(
+                    firstNonBlank(packageTypeOverride, request.packageType()),
+                    request.displayName(),
+                    request.tags(),
+                    request.categories(),
+                    entries
+            );
+            PublishMetadata metadata = new PublishMetadata(
+                    base.packageType(),
+                    base.department(),
+                    firstNonBlank(request.displayName(), base.displayName()),
+                    base.summary(),
+                    base.businessScope(),
+                    request.slug(),
+                    request.version(),
+                    request.changelog(),
+                    null
+            ).withDefaults();
+            PackageType packageType = metadata.packageType();
+            SkillPublishService.PublishResult result = skillPublishService.publishFromEntries(
+                    namespace,
+                    entries,
+                    principal.userId(),
+                    SkillVisibility.PUBLIC,
+                    principal.platformRoles(),
+                    confirmWarnings,
+                    metadata
+            );
+            recordCompatPublishAudit(principal.userId(), result.version().getId(), clientIp, userAgent,
+                    "{\"namespace\":\"" + namespace + "\",\"slug\":\"" + request.slug()
+                            + "\",\"packageType\":\"" + packageType.name() + "\"}");
+            return toPublishResponse(result);
+        } finally {
+            for (String id : cleanupIds) {
+                uploadSessionService.cleanup(id);
+            }
+        }
     }
 
     public ClawHubWhoamiResponse whoami(PlatformPrincipal principal) {
@@ -353,6 +506,51 @@ public class ClawHubCompatAppService {
                 principal.displayName(),
                 principal.avatarUrl()
         );
+    }
+
+    private ClawHubPublishResponse toPublishResponse(SkillPublishService.PublishResult result) {
+        String status = result.version().getStatus() != null ? result.version().getStatus().name() : null;
+        String publicationStatus = "PUBLISHED".equals(status) ? "published" : "pending";
+        return new ClawHubPublishResponse(
+                true,
+                result.skillId().toString(),
+                result.version().getId().toString(),
+                publicationStatus,
+                result.slug(),
+                result.version().getVersion(),
+                publicationStatus
+        );
+    }
+
+    private String buildUploadUrl(String ticket) {
+        // Prefer configured public base URL so reverse-proxy (nginx:3000 -> server:80)
+        // does not emit upload links on the internal/container port.
+        if (StringUtils.hasText(publicBaseUrl)) {
+            String base = publicBaseUrl.endsWith("/")
+                    ? publicBaseUrl.substring(0, publicBaseUrl.length() - 1)
+                    : publicBaseUrl;
+            return base + "/api/v1/skills/-/upload/" + ticket;
+        }
+        try {
+            return ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/api/v1/skills/-/upload/")
+                    .path(ticket)
+                    .build()
+                    .toUriString();
+        } catch (IllegalStateException ignored) {
+            // No request context (e.g. unit test)
+        }
+        return "/api/v1/skills/-/upload/" + ticket;
+    }
+
+    private String determineNamespaceFromJson(ClawHubJsonPublishRequest request) {
+        if (StringUtils.hasText(request.namespace())) {
+            return normalizeNamespace(request.namespace());
+        }
+        if (StringUtils.hasText(request.slug()) && request.slug().contains("--")) {
+            return mapper.fromCanonical(request.slug()).namespace();
+        }
+        return GLOBAL_NAMESPACE;
     }
 
     private ClawHubSearchResponse.ClawHubSearchResult toSearchResult(SkillSummaryResponse item) {
@@ -456,6 +654,16 @@ public class ClawHubCompatAppService {
                 userAgent,
                 detailJson
         );
+    }
+
+    private static String firstNonBlank(String primary, String secondary) {
+        if (StringUtils.hasText(primary)) {
+            return primary.trim();
+        }
+        if (StringUtils.hasText(secondary)) {
+            return secondary.trim();
+        }
+        return null;
     }
 
 }

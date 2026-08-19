@@ -42,6 +42,7 @@ import type {
   NotificationUnreadCount,
   SkillDeleteResult,
   AdminLabelInput,
+  AdminUser,
   LabelDefinition,
   LabelItem,
   BatchMemberResponse,
@@ -1185,6 +1186,39 @@ export const adminApi = {
       headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ role }),
     })
+  },
+
+  async createUser(payload: {
+    username: string
+    password: string
+    email?: string
+    role?: string
+  }): Promise<AdminUser> {
+    const response = await fetchJson<{
+      id: string
+      username: string
+      email?: string
+      platformRoles?: string[]
+      status: string
+      createdAt: string
+    }>(`/api/v1/admin/users`, {
+      method: 'POST',
+      headers: getCsrfHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        username: payload.username,
+        password: payload.password,
+        email: payload.email || undefined,
+        role: payload.role || undefined,
+      }),
+    })
+    return {
+      userId: response.id,
+      username: response.username,
+      email: response.email,
+      platformRoles: response.platformRoles ?? [],
+      status: response.status,
+      createdAt: response.createdAt,
+    }
   },
 
   async updateUserStatus(userId: string, status: string): Promise<void> {

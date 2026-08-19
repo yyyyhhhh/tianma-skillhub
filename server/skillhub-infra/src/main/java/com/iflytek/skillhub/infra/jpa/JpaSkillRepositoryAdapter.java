@@ -93,6 +93,11 @@ public class JpaSkillRepositoryAdapter implements SkillRepository {
     }
 
     @Override
+    public void incrementViewCount(Long skillId) {
+        delegate.incrementViewCount(skillId);
+    }
+
+    @Override
     public void incrementSubscriptionCount(Long skillId) {
         delegate.incrementSubscriptionCount(skillId);
     }

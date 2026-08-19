@@ -7,6 +7,7 @@ import { SkillCard } from '@/features/skill/skill-card'
 import { SkeletonList } from '@/shared/components/skeleton-loader'
 import { useSearchSkills } from '@/shared/hooks/use-skill-queries'
 import { useInView } from '@/shared/hooks/use-in-view'
+import { BRAND_NAME } from '@/shared/lib/brand'
 import { Button } from '@/shared/ui/button'
 
 /**
@@ -91,8 +92,8 @@ export function LandingPage() {
     <>
       {/* Hero Section */}
       <main ref={heroView.ref} className={`relative z-10 flex flex-col items-center pt-16 pb-20 px-4 md:pt-24 scroll-fade-up${heroView.inView ? ' in-view' : ''}`}>
-        <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-brand-gradient mb-4">
-          SkillHub
+        <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-brand-gradient mb-4">
+          {BRAND_NAME}
         </h1>
         <h2
           className="text-xl md:text-2xl font-semibold tracking-tight text-center mb-3"
@@ -165,45 +166,6 @@ export function LandingPage() {
         </div>
       </main>
 
-      {/* Features Section */}
-      <section ref={featuresView.ref} className={`relative z-10 w-full py-20 md:py-24 px-6 scroll-fade-up${featuresView.inView ? ' in-view' : ''}`} style={{ background: 'var(--bg-page, hsl(var(--background)))' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ color: 'hsl(var(--foreground))' }}>
-              {t('landing.whySkillHub.title', { defaultValue: '为什么选择 SkillHub' })}
-            </h2>
-            <p className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
-              {t('landing.whySkillHub.subtitle', { defaultValue: '专为企业打造的私有化 Agent 技能管理平台' })}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="bg-white rounded-xl p-8 border shadow-sm transition-shadow hover:shadow-md"
-                style={{ borderColor: 'hsl(var(--border-card))' }}
-              >
-                <div className="feature-icon w-12 h-12 rounded-2xl flex items-center justify-center mb-6 mx-auto bg-brand-gradient">
-                  {feature.icon}
-                </div>
-                <h3 className="text-lg font-semibold text-center mb-3" style={{ color: 'hsl(var(--foreground))' }}>
-                  {feature.title}
-                </h3>
-                <p className="text-sm text-center leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Start */}
-      <div ref={quickStartView.ref} className={`scroll-fade-up${quickStartView.inView ? ' in-view' : ''}`}>
-        <LandingQuickStartSection />
-      </div>
-
       {/* Popular Downloads Section */}
       <section ref={popularView.ref} className={`relative z-10 w-full py-20 md:py-24 px-6 scroll-fade-up${popularView.inView ? ' in-view' : ''}`} style={{ background: 'var(--bg-page, hsl(var(--background)))' }}>
         <div className="max-w-6xl mx-auto space-y-6">
@@ -271,6 +233,45 @@ export function LandingPage() {
           )}
         </div>
       </section>
+
+      {/* Features Section */}
+      <section ref={featuresView.ref} className={`relative z-10 w-full py-20 md:py-24 px-6 scroll-fade-up${featuresView.inView ? ' in-view' : ''}`} style={{ background: 'var(--bg-page, hsl(var(--background)))' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-14">
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3" style={{ color: 'hsl(var(--foreground))' }}>
+              {t('landing.whySkillHub.title', { defaultValue: '为什么选择 天马AI资产中心' })}
+            </h2>
+            <p className="text-base md:text-lg max-w-2xl mx-auto leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
+              {t('landing.whySkillHub.subtitle', { defaultValue: '专为企业打造的私有化 AI 资产管理平台' })}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-white rounded-xl p-8 border shadow-sm transition-shadow hover:shadow-md"
+                style={{ borderColor: 'hsl(var(--border-card))' }}
+              >
+                <div className="feature-icon w-12 h-12 rounded-2xl flex items-center justify-center mb-6 mx-auto bg-brand-gradient">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-center mb-3" style={{ color: 'hsl(var(--foreground))' }}>
+                  {feature.title}
+                </h3>
+                <p className="text-sm text-center leading-relaxed" style={{ color: 'hsl(var(--text-secondary))' }}>
+                  {feature.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Start */}
+      <div ref={quickStartView.ref} className={`scroll-fade-up${quickStartView.inView ? ' in-view' : ''}`}>
+        <LandingQuickStartSection />
+      </div>
     </>
   )
 }

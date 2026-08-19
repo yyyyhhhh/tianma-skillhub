@@ -28,7 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class LocalAuthService {
 
-    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9_]{3,64}$");
+    // 本地用户名：3-64 位，允许字母、数字、下划线和中文
+    private static final Pattern USERNAME_PATTERN = Pattern.compile("^[A-Za-z0-9_\\u4e00-\\u9fff]{3,64}$");
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final int MAX_FAILED_ATTEMPTS = 5;
     private static final Duration LOCK_DURATION = Duration.ofMinutes(15);
@@ -67,6 +68,22 @@ public class LocalAuthService {
      */
     @Transactional
     public PlatformPrincipal register(String username, String password, String email) {
+        return createLocalAccount(username, password, email, true);
+    }
+
+    /**
+     * Creates a local account on behalf of an administrator. Email is optional;
+     * when provided it must be unique and well-formed.
+     */
+    @Transactional
+    public PlatformPrincipal registerByAdmin(String username, String password, String email) {
+        return createLocalAccount(username, password, email, false);
+    }
+
+    private PlatformPrincipal createLocalAccount(String username,
+                                                 String password,
+                                                 String email,
+                                                 boolean emailRequired) {
         String normalizedUsername = normalizeUsername(username);
         validateUsername(normalizedUsername);
 
@@ -75,7 +92,11 @@ public class LocalAuthService {
         }
 
         String normalizedEmail = normalizeEmail(email);
-        validateEmail(normalizedEmail);
+        if (emailRequired) {
+            validateEmail(normalizedEmail);
+        } else if (normalizedEmail != null && !EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new AuthFlowException(HttpStatus.BAD_REQUEST, "validation.auth.local.email.invalid");
+        }
         if (normalizedEmail != null && userAccountRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
             throw new AuthFlowException(HttpStatus.CONFLICT, "error.auth.local.email.exists");
         }

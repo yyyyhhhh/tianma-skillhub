@@ -114,7 +114,11 @@ class ClawHubCompatControllerTest {
                                 new SkillLifecycleVersionResponse(11L, "1.2.0", "PUBLISHED"),
                                 new SkillLifecycleVersionResponse(11L, "1.2.0", "PUBLISHED"),
                                 null,
-                                "PUBLISHED")),
+                                "PUBLISHED",
+                                "SKILL",
+                                null,
+                                0L
+                        )),
                         1,
                         0,
                         20
@@ -306,7 +310,8 @@ class ClawHubCompatControllerTest {
                 eq("user-42"),
                 eq(SkillVisibility.PUBLIC),
                 eq(Set.of("SUPER_ADMIN")),
-                eq(false)))
+                eq(false),
+                any()))
                 .willReturn(new SkillPublishService.PublishResult(12L, "my-skill", version));
 
         mockMvc.perform(multipart("/api/v1/skills")
@@ -331,7 +336,8 @@ class ClawHubCompatControllerTest {
                 eq("user-42"),
                 eq(SkillVisibility.PUBLIC),
                 eq(Set.of("SUPER_ADMIN")),
-                eq(false)))
+                eq(false),
+                any()))
                 .willReturn(new SkillPublishService.PublishResult(13L, "my-skill", version));
 
         mockMvc.perform(multipart("/api/v1/skills")
@@ -356,7 +362,8 @@ class ClawHubCompatControllerTest {
                 eq("user-42"),
                 eq(SkillVisibility.PUBLIC),
                 eq(Set.of("SUPER_ADMIN")),
-                eq(false)))
+                eq(false),
+                any()))
                 .willReturn(new SkillPublishService.PublishResult(14L, "my-skill", version));
 
         mockMvc.perform(multipart("/api/v1/skills")
@@ -370,6 +377,33 @@ class ClawHubCompatControllerTest {
                 .andExpect(jsonPath("$.ok").value(true))
                 .andExpect(jsonPath("$.skillId").value("14"))
                 .andExpect(jsonPath("$.versionId").value("36"));
+    }
+
+    @Test
+    void publish_skill_with_package_type_param_passes_metadata() throws Exception {
+        SkillVersion version = publishVersion("1.0.0", 37L);
+        given(skillPublishService.publishFromEntries(
+                eq("global"),
+                anyList(),
+                eq("user-42"),
+                eq(SkillVisibility.PUBLIC),
+                eq(Set.of("SUPER_ADMIN")),
+                eq(false),
+                org.mockito.ArgumentMatchers.argThat(meta ->
+                        meta != null && meta.packageType() == com.iflytek.skillhub.domain.skill.PackageType.SKILL)))
+                .willReturn(new SkillPublishService.PublishResult(15L, "agent-demo", version));
+
+        mockMvc.perform(multipart("/api/v1/skills")
+                        .file(skillMdFile())
+                        .param("payload", """
+                                {"slug":"agent-demo","displayName":"Agent Demo","version":"1.0.0","acceptLicenseTerms":true,"tags":["latest"]}
+                                """)
+                        .param("packageType", "APP")
+                        .with(authentication(superAdminAuth()))
+                        .with(csrf()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ok").value(true))
+                .andExpect(jsonPath("$.skillId").value("15"));
     }
 
     private CompatSkillLookupService.CompatSkillContext legacyCompatContext(String namespaceSlug, String skillSlug) {

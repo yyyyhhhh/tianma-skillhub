@@ -84,7 +84,10 @@ public class ReviewSkillDetailAppService {
                 snapshot.publishedVersion() != null ? toLifecycleVersion(snapshot.publishedVersion()) : null,
                 toLifecycleVersion(snapshot.activeVersion()),
                 null,
-                "REVIEW_TASK"
+                "REVIEW_TASK",
+                snapshot.skill().getPackageType().name(),
+                snapshot.skill().getDepartment(),
+                snapshot.skill().getViewCount()
         );
 
         List<SkillVersionResponse> versions = snapshot.versions().stream()

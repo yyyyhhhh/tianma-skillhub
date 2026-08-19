@@ -19,7 +19,8 @@ class OAuthLoginFlowServiceTest {
         OAuthLoginFlowService service = new OAuthLoginFlowService(
                 List.of(),
                 mock(AccessPolicy.class),
-                mock(IdentityBindingService.class)
+                mock(IdentityBindingService.class),
+                mock(DingTalkOAuth2UserClient.class)
         );
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("returnTo", "/dashboard/publish");
@@ -37,7 +38,8 @@ class OAuthLoginFlowServiceTest {
         OAuthLoginFlowService service = new OAuthLoginFlowService(
                 List.of(),
                 mock(AccessPolicy.class),
-                mock(IdentityBindingService.class)
+                mock(IdentityBindingService.class),
+                mock(DingTalkOAuth2UserClient.class)
         );
 
         String redirect = service.resolveFailureRedirect(
@@ -53,7 +55,8 @@ class OAuthLoginFlowServiceTest {
         OAuthLoginFlowService service = new OAuthLoginFlowService(
                 List.of(),
                 mock(AccessPolicy.class),
-                mock(IdentityBindingService.class)
+                mock(IdentityBindingService.class),
+                mock(DingTalkOAuth2UserClient.class)
         );
         MockHttpServletRequest request = new MockHttpServletRequest();
         HttpSession session = request.getSession(true);

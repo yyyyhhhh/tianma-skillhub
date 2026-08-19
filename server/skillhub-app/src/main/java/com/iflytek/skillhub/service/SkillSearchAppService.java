@@ -68,7 +68,7 @@ public class SkillSearchAppService {
             int size,
             String userId,
             Map<Long, NamespaceRole> userNsRoles) {
-        return search(keyword, namespaceSlug, sortBy, page, size, List.of(), userId, userNsRoles);
+        return search(keyword, namespaceSlug, sortBy, page, size, List.of(), null, null, userId, userNsRoles);
     }
 
     public SearchResponse search(
@@ -80,12 +80,37 @@ public class SkillSearchAppService {
             List<String> labelSlugs,
             String userId,
             Map<Long, NamespaceRole> userNsRoles) {
+        return search(keyword, namespaceSlug, sortBy, page, size, labelSlugs, null, null, userId, userNsRoles);
+    }
+
+    public SearchResponse search(
+            String keyword,
+            String namespaceSlug,
+            String sortBy,
+            int page,
+            int size,
+            List<String> labelSlugs,
+            String packageType,
+            String department,
+            String userId,
+            Map<Long, NamespaceRole> userNsRoles) {
 
         Long namespaceId = resolveNamespaceId(namespaceSlug, userId, userNsRoles);
 
         SearchVisibilityScope scope = buildVisibilityScope(userId, userNsRoles);
 
-        return searchVisibleSkills(keyword, namespaceId, sortBy != null ? sortBy : "newest", page, size, labelSlugs, scope, false);
+        return searchVisibleSkills(
+                keyword,
+                namespaceId,
+                sortBy != null ? sortBy : "newest",
+                page,
+                size,
+                labelSlugs,
+                packageType,
+                department,
+                scope,
+                false
+        );
     }
 
     public SearchResponse searchInstallableLatest(
@@ -98,7 +123,7 @@ public class SkillSearchAppService {
             Map<Long, NamespaceRole> userNsRoles) {
         Long namespaceId = resolveNamespaceId(namespaceSlug, userId, userNsRoles);
         SearchVisibilityScope scope = buildVisibilityScope(userId, userNsRoles);
-        return searchVisibleSkills(keyword, namespaceId, sortBy != null ? sortBy : "newest", page, size, List.of(), scope, true);
+        return searchVisibleSkills(keyword, namespaceId, sortBy != null ? sortBy : "newest", page, size, List.of(), null, null, scope, true);
     }
 
     private Long resolveNamespaceId(String namespaceSlug, String userId, Map<Long, NamespaceRole> userNsRoles) {
@@ -146,6 +171,8 @@ public class SkillSearchAppService {
             int page,
             int size,
             List<String> labelSlugs,
+            String packageType,
+            String department,
             SearchVisibilityScope scope,
             boolean requireInstallableLatest) {
         SearchResult result = searchQueryService.search(new SearchQuery(
@@ -156,10 +183,26 @@ public class SkillSearchAppService {
                 page,
                 size,
                 normalizeLabelSlugs(labelSlugs),
-                requireInstallableLatest
+                requireInstallableLatest,
+                normalizePackageType(packageType),
+                blankToNull(department)
         ));
         List<SkillSummaryResponse> pageItems = mapVisibleSkillSummaries(result.skillIds());
         return new SearchResponse(pageItems, result.total(), page, size);
+    }
+
+    private static String normalizePackageType(String packageType) {
+        if (packageType == null || packageType.isBlank()) {
+            return null;
+        }
+        return "SKILL";
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private List<String> normalizeLabelSlugs(List<String> labelSlugs) {
@@ -225,7 +268,10 @@ public class SkillSearchAppService {
                 toLifecycleVersion(projection.headlineVersion()),
                 toLifecycleVersion(projection.publishedVersion()),
                 toLifecycleVersion(projection.ownerPreviewVersion()),
-                projection.resolutionMode().name()
+                projection.resolutionMode().name(),
+                skill.getPackageType().name(),
+                skill.getDepartment(),
+                skill.getViewCount()
         );
     }
 

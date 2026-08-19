@@ -6,14 +6,22 @@ import { cn } from '@/shared/lib/utils'
 interface UploadZoneProps {
   onFileSelect: (file: File) => void
   disabled?: boolean
+  /** MIME/extension map for react-dropzone; defaults to zip-only. */
+  accept?: Record<string, string[]>
+  formatHintKey?: string
 }
 
 /**
- * Provides the publish page dropzone for uploading one zip package at a time.
+ * Provides the publish page dropzone for uploading one package/file at a time.
  * The component is intentionally stateless so packaging validation can remain in
  * the publish flow that knows the surrounding form and backend constraints.
  */
-export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
+export function UploadZone({
+  onFileSelect,
+  disabled,
+  accept = { 'application/zip': ['.zip'] },
+  formatHintKey = 'upload.formatHint',
+}: UploadZoneProps) {
   const { t } = useTranslation()
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -26,9 +34,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'application/zip': ['.zip'],
-    },
+    accept,
     maxFiles: 1,
     disabled,
   })
@@ -37,8 +43,8 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
     <div
       {...getRootProps()}
       className={cn(
-        'upload-zone rounded-xl p-10 text-center cursor-pointer transition-all duration-300',
-        isDragActive && 'border-primary bg-primary/5 scale-[1.01]',
+        'upload-zone rounded-2xl border border-slate-200 bg-white p-10 text-center cursor-pointer transition-all duration-300 hover:border-slate-300',
+        isDragActive && 'border-[#6466F1] bg-indigo-50/50 scale-[1.01]',
         disabled && 'opacity-50 cursor-not-allowed'
       )}
     >
@@ -67,7 +73,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
         ) : (
           <>
             <p className="text-sm font-medium text-foreground">{t('upload.dragHint')}</p>
-            <p className="text-xs text-muted-foreground">{t('upload.formatHint')}</p>
+            <p className="text-xs text-muted-foreground">{t(formatHintKey)}</p>
           </>
         )}
       </div>

@@ -23,6 +23,19 @@ class RouteSecurityPolicyRegistryTest {
     }
 
     @Test
+    void authorizeApiToken_requiresPublishScopeForClawHubUploadUrl() {
+        var denied = registry.authorizeApiToken("POST", "/api/v1/skills/-/upload-url", Set.of());
+        var allowed = registry.authorizeApiToken("POST", "/api/v1/skills/-/upload-url", Set.of("skill:publish"));
+        var uploadAllowed = registry.authorizeApiToken(
+                "POST", "/api/v1/skills/-/upload/abc123", Set.of("skill:publish"));
+
+        assertFalse(denied.allowed());
+        assertEquals("skill:publish", denied.requiredScope());
+        assertTrue(allowed.allowed());
+        assertTrue(uploadAllowed.allowed());
+    }
+
+    @Test
     void authorizeApiToken_requiresDeleteScopeForHardDeleteEndpoint() {
         var denied = registry.authorizeApiToken("DELETE", "/api/v1/skills/global/demo-skill", Set.of("skill:publish"));
         var allowed = registry.authorizeApiToken("DELETE", "/api/v1/skills/global/demo-skill", Set.of("skill:delete"));

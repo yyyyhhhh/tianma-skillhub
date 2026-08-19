@@ -23,6 +23,7 @@ public interface SkillRepository {
     List<Skill> findByOwnerId(String ownerId);
     Page<Skill> findByOwnerId(String ownerId, Pageable pageable);
     void incrementDownloadCount(Long skillId);
+    void incrementViewCount(Long skillId);
     void incrementSubscriptionCount(Long skillId);
     void decrementSubscriptionCount(Long skillId);
     List<Skill> findBySlug(String slug);

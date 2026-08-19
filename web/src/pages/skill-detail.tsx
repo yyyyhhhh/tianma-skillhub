@@ -31,7 +31,7 @@ import { adminApi, ApiError, buildApiUrl, WEB_API_PREFIX } from '@/api/client'
 import { useSubmitSkillReport } from '@/features/report/use-skill-reports'
 import { SecurityAuditSummary } from '@/features/security-audit/security-audit-summary'
 import { formatLocalDateTime } from '@/shared/lib/date-time'
-import { incrementSkillDownloadCount } from '@/shared/lib/skill-download-cache'
+import { incrementSkillDownloadCount, parseContentDispositionFilename } from '@/shared/lib/skill-download-cache'
 import { getSkillLabelSearch, getSkillSquareSearch, normalizeSkillDetailReturnTo } from '@/shared/lib/skill-navigation'
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { resolveDocumentationFilePath } from '@/shared/lib/skill-documentation'
@@ -306,9 +306,12 @@ export function SkillDetailPage() {
   const submitForReviewMutation = useSubmitForReview()
   const confirmPublishMutation = useConfirmPublish()
 
-  const triggerBrowserDownload = (url: string) => {
+  const triggerBrowserDownload = (url: string, filename?: string) => {
     const link = document.createElement('a')
     link.href = url
+    if (filename) {
+      link.download = filename
+    }
     document.body.appendChild(link)
     link.click()
     link.remove()
@@ -383,14 +386,29 @@ export function SkillDetailPage() {
 
     try {
       const cleanNamespace = namespace.startsWith('@') ? namespace.slice(1) : namespace
-      triggerBrowserDownload(
-        buildApiUrl(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/versions/${encodeURIComponent(selectedVersionEntry.version)}/download`),
+      const downloadUrl = buildApiUrl(
+        `${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/versions/${encodeURIComponent(selectedVersionEntry.version)}/download`,
       )
+      // Await the download response so the server increments download_count before we refetch UI caches.
+      const response = await fetch(downloadUrl, { credentials: 'same-origin' })
+      if (!response.ok) {
+        throw new Error(`Download failed (${response.status})`)
+      }
+      const filename = parseContentDispositionFilename(response.headers.get('Content-Disposition'))
+        ?? `${skill?.displayName || slug}-${selectedVersionEntry.version}.zip`
+      const blob = await response.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      try {
+        triggerBrowserDownload(objectUrl, filename)
+      } finally {
+        URL.revokeObjectURL(objectUrl)
+      }
       incrementSkillDownloadCount(queryClient, { namespace, slug })
       queryClient.invalidateQueries({ queryKey: ['skills', namespace, slug] })
       queryClient.invalidateQueries({ queryKey: ['skills', 'my'] })
       queryClient.invalidateQueries({ queryKey: ['skills', 'stars'] })
       queryClient.invalidateQueries({ queryKey: ['skills', 'search'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     } catch (error) {
       toast.error(t(resolveSkillActionErrorTitle('download')), error instanceof Error ? error.message : '')
     }

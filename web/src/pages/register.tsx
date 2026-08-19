@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Input } from '@/shared/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs'
 
-const USERNAME_PATTERN = /^[A-Za-z0-9_]{3,64}$/
+const USERNAME_PATTERN = /^[A-Za-z0-9_\u4e00-\u9fff]{3,64}$/
 const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
 
 type RegisterFieldErrors = {

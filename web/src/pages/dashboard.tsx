@@ -6,6 +6,7 @@ import { useMySkills } from '@/shared/hooks/use-user-queries'
 import { canViewGovernanceCenter } from '@/shared/lib/governance-access'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { TokenList } from '@/features/token/token-list'
+import { OpsBoard } from '@/features/dashboard/ops-board'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
 import { limitPreviewItems } from './dashboard-preview'
@@ -76,6 +77,8 @@ export function DashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      <OpsBoard />
 
       <div className={`grid grid-cols-1 gap-4 ${governanceVisible ? 'md:grid-cols-5' : 'md:grid-cols-4'}`}>
         <Card className="p-5">

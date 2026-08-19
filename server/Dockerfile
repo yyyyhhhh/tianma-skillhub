@@ -16,7 +16,7 @@ COPY .mvn .mvn
 RUN ./mvnw dependency:go-offline -B
 
 COPY . .
-RUN ./mvnw package -DskipTests -B
+RUN ./mvnw package -Dmaven.test.skip=true -B
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine

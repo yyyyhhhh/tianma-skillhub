@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { tokenApi } from '@/api/client'
@@ -48,6 +48,7 @@ export function CreateTokenDialog({ children, existingNames = [] }: CreateTokenD
   const [customExpiresAt, setCustomExpiresAt] = useState('')
   const [expiresAtError, setExpiresAtError] = useState<string | null>(null)
   const [, copy] = useCopyToClipboard()
+  const tokenInputRef = useRef<HTMLTextAreaElement>(null)
   const queryClient = useQueryClient()
 
   const normalizedName = name.trim()
@@ -105,10 +106,10 @@ export function CreateTokenDialog({ children, existingNames = [] }: CreateTokenD
   }
 
   const handleCopyToken = async () => {
-    if (!createdToken) return
+    if (!createdToken?.token) return
 
     try {
-      await copy(createdToken.token)
+      await copy(createdToken.token, { preferredTarget: tokenInputRef.current })
       toast.success(t('createToken.copySuccess'), undefined, centeredToastOptions())
     } catch (error) {
       console.error('Failed to copy token:', error)
@@ -247,10 +248,18 @@ export function CreateTokenDialog({ children, existingNames = [] }: CreateTokenD
             </DialogHeader>
             <div className="min-w-0 space-y-4 py-4">
               <div className="space-y-2">
-                <Label>{t('createToken.tokenLabel')}</Label>
-                <div className="overflow-hidden rounded-md bg-muted p-3 font-mono text-sm break-all">
-                  {createdToken.token}
-                </div>
+                <Label htmlFor="created-token-value">{t('createToken.tokenLabel')}</Label>
+                <textarea
+                  id="created-token-value"
+                  ref={tokenInputRef}
+                  readOnly
+                  value={createdToken.token}
+                  rows={3}
+                  onFocus={(event) => {
+                    event.currentTarget.select()
+                  }}
+                  className="w-full resize-none overflow-hidden rounded-md border border-transparent bg-muted p-3 font-mono text-sm break-all text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
               </div>
               <div className="space-y-2">
                 <Label>{t('createToken.nameDisplay')}</Label>

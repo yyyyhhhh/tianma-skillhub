@@ -44,6 +44,7 @@ class SecurityScanServiceTest {
                 scanTaskProducer,
                 new ObjectMapper(),
                 "local",
+                true,
                 true
         );
     }
@@ -100,6 +101,7 @@ class SecurityScanServiceTest {
                 scanTaskProducer,
                 new ObjectMapper(),
                 "upload",
+                true,
                 true
         );
         SkillVersion version = new SkillVersion(8L, "1.0.0", "publisher-1");
@@ -150,6 +152,7 @@ class SecurityScanServiceTest {
                 scanTaskProducer,
                 new ObjectMapper(),
                 "upload",
+                true,
                 true
         );
         SkillVersion version = new SkillVersion(8L, "1.0.0", "publisher-1");

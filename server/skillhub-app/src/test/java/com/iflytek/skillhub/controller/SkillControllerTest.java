@@ -181,7 +181,10 @@ class SkillControllerTest {
                         null,
                         new com.iflytek.skillhub.domain.skill.service.SkillLifecycleProjectionService.VersionProjection(11L, "1.1.0", "PENDING_REVIEW"),
                         null,
-                        "OWNER_PREVIEW"
+                        "OWNER_PREVIEW",
+                        "SKILL",
+                        null,
+                        0L
                 ));
 
         mockMvc.perform(get("/api/web/skills/team/demo"))

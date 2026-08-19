@@ -86,7 +86,10 @@ export function LandingQuickStartSection() {
       id: 'human',
       label: t('landing.quickStart.tabs.human'),
       description: t('landing.quickStart.human.description'),
-      command: t('landing.quickStart.human.command'),
+      command: t('landing.quickStart.human.commandTemplate', {
+        defaultValue: t('landing.quickStart.human.command'),
+        registry: baseUrl,
+      }),
     },
     {
       id: 'cli',

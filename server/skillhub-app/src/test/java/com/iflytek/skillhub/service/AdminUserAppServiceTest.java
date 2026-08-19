@@ -2,6 +2,8 @@ package com.iflytek.skillhub.service;
 
 import com.iflytek.skillhub.auth.entity.Role;
 import com.iflytek.skillhub.auth.entity.UserRoleBinding;
+import com.iflytek.skillhub.auth.local.LocalAuthService;
+import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.auth.repository.RoleRepository;
 import com.iflytek.skillhub.auth.repository.UserRoleBindingRepository;
 import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
@@ -10,6 +12,7 @@ import com.iflytek.skillhub.domain.shared.exception.DomainNotFoundException;
 import com.iflytek.skillhub.domain.user.UserAccount;
 import com.iflytek.skillhub.domain.user.UserAccountRepository;
 import com.iflytek.skillhub.domain.user.UserStatus;
+import com.iflytek.skillhub.dto.AdminUserSummaryResponse;
 import com.iflytek.skillhub.dto.PageResponse;
 import com.iflytek.skillhub.repository.AdminUserSearchRepository;
 import org.junit.jupiter.api.Test;
@@ -35,12 +38,56 @@ class AdminUserAppServiceTest {
     private final UserRoleBindingRepository userRoleBindingRepository = mock(UserRoleBindingRepository.class);
     private final RoleRepository roleRepository = mock(RoleRepository.class);
     private final UserAccountRepository userAccountRepository = mock(UserAccountRepository.class);
+    private final LocalAuthService localAuthService = mock(LocalAuthService.class);
     private final AdminUserAppService service = new AdminUserAppService(
             adminUserSearchRepository,
             userAccountRepository,
             userRoleBindingRepository,
-            roleRepository
+            roleRepository,
+            localAuthService
     );
+
+    @Test
+    void createLocalUser_registersAndDefaultsToUserRole() {
+        UserAccount created = user("usr_1", "bob", null, UserStatus.ACTIVE);
+        when(localAuthService.registerByAdmin("bob", "Abcd123!", null))
+                .thenReturn(new PlatformPrincipal("usr_1", "bob", null, null, "local", Set.of("USER")));
+        when(userAccountRepository.findById("usr_1")).thenReturn(Optional.of(created));
+
+        AdminUserSummaryResponse response = service.createLocalUser(
+                "bob", "Abcd123!", null, null, Set.of("USER_ADMIN"));
+
+        assertThat(response.id()).isEqualTo("usr_1");
+        assertThat(response.username()).isEqualTo("bob");
+        assertThat(response.platformRoles()).containsExactly("USER");
+        verify(userRoleBindingRepository, never()).deleteByUserId(any());
+        verify(userRoleBindingRepository, never()).save(any(UserRoleBinding.class));
+    }
+
+    @Test
+    void createLocalUser_assignsRequestedRole() {
+        UserAccount created = user("usr_1", "bob", "bob@example.com", UserStatus.ACTIVE);
+        when(localAuthService.registerByAdmin("bob", "Abcd123!", "bob@example.com"))
+                .thenReturn(new PlatformPrincipal("usr_1", "bob", "bob@example.com", null, "local", Set.of("USER")));
+        when(userAccountRepository.findById("usr_1")).thenReturn(Optional.of(created));
+        when(userRoleBindingRepository.findByUserId("usr_1")).thenReturn(List.of());
+        when(roleRepository.findByCode("AUDITOR")).thenReturn(Optional.of(role("AUDITOR")));
+
+        AdminUserSummaryResponse response = service.createLocalUser(
+                "bob", "Abcd123!", "bob@example.com", "AUDITOR", Set.of("SUPER_ADMIN"));
+
+        assertThat(response.platformRoles()).containsExactly("AUDITOR");
+        verify(userRoleBindingRepository).deleteByUserId("usr_1");
+        verify(userRoleBindingRepository).save(any(UserRoleBinding.class));
+    }
+
+    @Test
+    void createLocalUser_nonSuperAdminCannotAssignSuperAdmin() {
+        assertThrows(DomainForbiddenException.class,
+                () -> service.createLocalUser("bob", "Abcd123!", null, "SUPER_ADMIN", Set.of("USER_ADMIN")));
+
+        verify(localAuthService, never()).registerByAdmin(any(), any(), any());
+    }
 
     @Test
     void listUsers_returnsPagedUsersFromRepository() {

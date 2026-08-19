@@ -261,4 +261,43 @@ class LocalAuthServiceTest {
             .isInstanceOf(AuthFlowException.class)
             .hasMessageContaining("validation.auth.local.email.notBlank");
     }
+
+    @Test
+    void registerByAdmin_acceptsChineseUsername() {
+        given(credentialRepository.existsByUsernameIgnoreCase("渊如1")).willReturn(false);
+        given(passwordEncoder.encode("test_1234")).willReturn("encoded");
+        given(userAccountRepository.save(any(UserAccount.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(userRoleBindingRepository.findByUserId(any())).willReturn(List.of());
+
+        var principal = service.registerByAdmin("渊如1", "test_1234", null);
+
+        ArgumentCaptor<UserAccount> userCaptor = ArgumentCaptor.forClass(UserAccount.class);
+        verify(userAccountRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().getDisplayName()).isEqualTo("渊如1");
+        assertThat(principal.displayName()).isEqualTo("渊如1");
+    }
+
+    @Test
+    void register_rejectsUsernameWithSpecialCharacters() {
+        assertThatThrownBy(() -> service.register("渊如!", "Abcd123!", "alice@example.com"))
+            .isInstanceOf(AuthFlowException.class)
+            .hasMessageContaining("error.auth.local.username.invalid");
+    }
+
+    @Test
+    void registerByAdmin_allowsMissingEmail() {
+        given(credentialRepository.existsByUsernameIgnoreCase("bob")).willReturn(false);
+        given(passwordEncoder.encode("Abcd123!")).willReturn("encoded");
+        given(userAccountRepository.save(any(UserAccount.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(userRoleBindingRepository.findByUserId(any())).willReturn(List.of());
+
+        var principal = service.registerByAdmin("Bob", "Abcd123!", null);
+
+        ArgumentCaptor<UserAccount> userCaptor = ArgumentCaptor.forClass(UserAccount.class);
+        verify(userAccountRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().getEmail()).isNull();
+        assertThat(principal.displayName()).isEqualTo("bob");
+        verify(credentialRepository).save(any(LocalCredential.class));
+        verify(globalNamespaceMembershipService).ensureMember(userCaptor.getValue().getId());
+    }
 }

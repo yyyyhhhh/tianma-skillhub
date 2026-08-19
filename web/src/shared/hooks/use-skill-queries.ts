@@ -44,12 +44,31 @@ async function getSkillDocumentation(namespace: string, slug: string, version: s
   return fetchText(`${WEB_API_PREFIX}/skills/${cleanNamespace}/${encodeURIComponent(slug)}/versions/${encodeURIComponent(version)}/file?path=${encodeURIComponent(path)}`)
 }
 
-async function publishSkill(params: { namespace: string; file: File; visibility: string; confirmWarnings?: boolean }): Promise<PublishResult> {
+async function publishSkill(params: {
+  namespace: string
+  file: File
+  visibility: string
+  confirmWarnings?: boolean
+  packageType?: string
+  department?: string
+  displayName?: string
+  summary?: string
+  businessScope?: string
+  businessSubTags?: string[]
+}): Promise<PublishResult> {
   const cleanNamespace = params.namespace.startsWith('@') ? params.namespace.slice(1) : params.namespace
   const formData = new FormData()
   formData.append('file', params.file)
   formData.append('visibility', params.visibility)
   formData.append('confirmWarnings', String(params.confirmWarnings === true))
+  if (params.packageType) formData.append('packageType', params.packageType)
+  if (params.department) formData.append('department', params.department)
+  if (params.displayName) formData.append('displayName', params.displayName)
+  if (params.summary) formData.append('summary', params.summary)
+  if (params.businessScope) formData.append('businessScope', params.businessScope)
+  if (params.businessSubTags?.length) {
+    formData.append('businessSubTags', params.businessSubTags.join(','))
+  }
 
   return fetchJson<PublishResult>(`${WEB_API_PREFIX}/skills/${cleanNamespace}/publish`, {
     method: 'POST',

@@ -7,6 +7,7 @@ import { UserMenu } from '@/shared/components/user-menu'
 import { NotificationBell } from '@/features/notification/notification-bell'
 import { dismissOpenOverlays } from '@/shared/lib/dismiss-open-overlays'
 import { syncDocumentLanguage } from '@/shared/lib/document-language'
+import { BRAND_MARK, BRAND_NAME } from '@/shared/lib/brand'
 import { getAppHeaderClassName } from './layout-header-style'
 import { getAppMainContentLayout, resolveAppMainContentPathname } from './layout-main-content'
 
@@ -66,7 +67,7 @@ export function Layout() {
     { label: t('nav.publish'), to: '/dashboard/publish', auth: true },
     { label: t('nav.search'), to: '/search' },
     { label: t('nav.dashboard'), to: '/dashboard', auth: true },
-    { label: t('nav.mySkills'), to: '/dashboard/skills', auth: true },
+    { label: t('nav.myAssets'), to: '/dashboard/skills', auth: true },
   ]
 
   const isActive = (to: string, exact?: boolean) => {
@@ -90,8 +91,8 @@ export function Layout() {
 
       {/* Header */}
       <header className={getAppHeaderClassName(isHeaderElevated)} style={{ borderColor: 'hsl(var(--border))' }}>
-        <Link to="/" className="text-xl font-semibold tracking-tight text-brand-gradient">
-          SkillHub
+        <Link to="/" className="text-lg md:text-xl font-semibold tracking-tight text-brand-gradient">
+          {BRAND_NAME}
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-[15px] font-normal" style={{ color: 'hsl(var(--text-secondary))' }}>
@@ -105,7 +106,7 @@ export function Layout() {
                 to={item.to}
                 className={
                   active
-                    ? 'px-4 py-1.5 rounded-full bg-brand-gradient text-white shadow-sm'
+                    ? 'px-4 py-1.5 rounded-full bg-[#6466F1] text-white shadow-sm shadow-indigo-600/20'
                     : 'hover:opacity-80 transition-opacity duration-150'
                 }
               >
@@ -156,9 +157,9 @@ export function Layout() {
             <div className="flex-shrink-0">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-sm bg-brand-gradient">
-                  S
+                  {BRAND_MARK}
                 </div>
-                <span className="text-lg font-bold text-brand-gradient">SkillHub</span>
+                <span className="text-lg font-bold text-brand-gradient">{BRAND_NAME}</span>
               </div>
               <p className="text-sm max-w-xs" style={{ color: 'hsl(var(--text-secondary))' }}>
                 {t('layout.footerDescription')}

@@ -36,23 +36,34 @@ public class SecurityScanService {
     private final ObjectMapper objectMapper;
     private final String scanMode;
     private final boolean enabled;
+    private final boolean requireForVisiblePublish;
 
     public SecurityScanService(SecurityAuditRepository auditRepository,
                                SkillVersionRepository skillVersionRepository,
                                ScanTaskProducer scanTaskProducer,
                                ObjectMapper objectMapper,
                                @Value("${skillhub.security.scanner.mode:local}") String scanMode,
-                               @Value("${skillhub.security.scanner.enabled:false}") boolean enabled) {
+                               @Value("${skillhub.security.scanner.enabled:false}") boolean enabled,
+                               @Value("${skillhub.security.scanner.require-for-visible-publish:true}") boolean requireForVisiblePublish) {
         this.auditRepository = auditRepository;
         this.skillVersionRepository = skillVersionRepository;
         this.scanTaskProducer = scanTaskProducer;
         this.objectMapper = objectMapper;
         this.scanMode = scanMode;
         this.enabled = enabled;
+        this.requireForVisiblePublish = requireForVisiblePublish;
     }
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * When true (default), PUBLIC / NAMESPACE_ONLY publish is rejected if the scanner is disabled.
+     * Remote/low-memory stacks may set this false while keeping {@code enabled=false}.
+     */
+    public boolean isRequiredForVisiblePublish() {
+        return requireForVisiblePublish;
     }
 
     @Transactional

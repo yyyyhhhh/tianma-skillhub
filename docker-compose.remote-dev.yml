@@ -1,0 +1,130 @@
+# Remote secondary-dev stack for low-memory hosts (e.g. 49.235.61.16).
+#
+# Preferred (offline, build on laptop, no Maven on remote):
+#   ./scripts/deploy-remote-offline.sh
+#
+# Manual fallback on the server (needs images already present; avoid --build on 2G hosts):
+#   docker compose -p skillhub -f docker-compose.remote-dev.yml --env-file .env.remote-dev up -d --no-build
+#
+# Exposed by default:
+#   Web  http://<host>:3000      (WEB_PORT)
+#   API  http://<host>:18080     (direct; also proxied via nginx /api/)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      POSTGRES_DB: skillhub
+      POSTGRES_USER: skillhub
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-skillhub_dev}
+    volumes:
+      - skillhub_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillhub -d skillhub"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 256m
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - skillhub_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    mem_limit: 96m
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: skillhub-server:remote-dev
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - "${API_PORT:-18080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/skillhub
+      SPRING_DATASOURCE_USERNAME: skillhub
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-skillhub_dev}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SESSION_COOKIE_SECURE: "false"
+      SKILLHUB_PUBLIC_BASE_URL: ${SKILLHUB_PUBLIC_BASE_URL:-http://49.235.61.16:3000}
+      DEVICE_AUTH_VERIFICATION_URI: ${SKILLHUB_PUBLIC_BASE_URL:-http://49.235.61.16:3000}/cli/auth
+      SKILLHUB_STORAGE_PROVIDER: local
+      STORAGE_BASE_PATH: /var/lib/skillhub/storage
+      SKILLHUB_DOWNLOAD_ANON_COOKIE_SECRET: ${SKILLHUB_DOWNLOAD_ANON_COOKIE_SECRET:-remote-dev-download-secret-32b}
+      SKILLHUB_SECURITY_SCANNER_ENABLED: "false"
+      # Low-memory host has no scanner service; allow public CLI/web publish without it.
+      SKILLHUB_SECURITY_SCANNER_REQUIRE_FOR_VISIBLE_PUBLISH: "false"
+      SKILLHUB_BUILTIN_SKILLS_ENABLED: "false"
+      SKILLHUB_ASSET_DEPARTMENTS: "后端开发,前端开发,UI,产品,测试,运维"
+      BOOTSTRAP_ADMIN_ENABLED: "true"
+      BOOTSTRAP_ADMIN_USER_ID: remote-admin
+      BOOTSTRAP_ADMIN_USERNAME: admin
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-ChangeMe!2026}
+      BOOTSTRAP_ADMIN_DISPLAY_NAME: Admin
+      BOOTSTRAP_ADMIN_EMAIL: admin@skillhub.local
+      OAUTH2_GITHUB_CLIENT_ID: local-placeholder
+      OAUTH2_GITHUB_CLIENT_SECRET: local-placeholder
+      OAUTH2_DINGTALK_CLIENT_ID: ${OAUTH2_DINGTALK_CLIENT_ID:-placeholder}
+      OAUTH2_DINGTALK_CLIENT_SECRET: ${OAUTH2_DINGTALK_CLIENT_SECRET:-placeholder}
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70.0 -Xms128m"
+    volumes:
+      - skillhub_storage:/var/lib/skillhub/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 90s
+    mem_limit: 768m
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    volumes:
+      - ./web/dist:/usr/share/nginx/html:ro
+      - ./web/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+    environment:
+      SKILLHUB_API_UPSTREAM: http://server:8080
+      SKILLHUB_TRUST_FORWARDED_PROTO: "false"
+      SKILLHUB_WEB_API_BASE_URL: ""
+      SKILLHUB_PUBLIC_BASE_URL: ${SKILLHUB_PUBLIC_BASE_URL:-http://49.235.61.16:3000}
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    mem_limit: 64m
+
+volumes:
+  skillhub_pg_data:
+  skillhub_redis_data:
+  skillhub_storage:

@@ -1213,7 +1213,7 @@ export interface paths {
         };
         get: operations["listSkills"];
         put?: never;
-        post: operations["publishSkill"];
+        post: operations["publishSkill_1"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1230,6 +1230,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["undeleteSkill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/skills/-/upload/{ticket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["uploadFile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/skills/-/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createUploadUrl"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1406,6 +1438,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["requestDeviceCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listUsers"];
+        put?: never;
+        post: operations["createUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2852,6 +2900,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/web/dashboard/top10": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["top10"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/web/dashboard/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["summary_2"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/web/dashboard/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/web/dashboard/contributions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["contributions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/web/asset-meta/departments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["departments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/web/asset-meta/business-scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["businessScopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/whoami": {
         parameters: {
             query?: never;
@@ -3036,22 +3180,6 @@ export interface paths {
             cookie?: never;
         };
         get: operations["me"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3831,9 +3959,53 @@ export interface components {
             ok?: boolean;
             skillId?: string;
             versionId?: string;
+            status?: string;
+            slug?: string;
+            version?: string;
+            publicationStatus?: string;
+        };
+        ClawHubJsonPublishRequest: {
+            slug?: string;
+            displayName?: string;
+            ownerHandle?: string;
+            sourceOwnerHandle?: string;
+            migrateOwner?: boolean;
+            version?: string;
+            changelog?: string;
+            acceptLicenseTerms?: boolean;
+            confirmWarnings?: boolean;
+            namespace?: string;
+            packageType?: string;
+            tags?: string[];
+            categories?: string[];
+            topics?: string[];
+            files?: components["schemas"]["UploadedFile"][];
+        };
+        UploadedFile: {
+            path?: string;
+            /** Format: int64 */
+            size?: number;
+            storageId?: string;
+            sha256?: string;
+            contentType?: string;
+            uploadTicket?: string;
         };
         ClawHubDeleteResponse: {
             ok?: boolean;
+        };
+        ClawHubUploadFileResponse: {
+            storageId?: string;
+        };
+        ClawHubUploadUrlRequest: {
+            path?: string;
+            /** Format: int64 */
+            size?: number;
+            sha256?: string;
+            contentType?: string;
+        };
+        ClawHubUploadUrlResponse: {
+            uploadUrl?: string;
+            uploadTicket?: string;
         };
         AuthorizeRequest: {
             userCode?: string;
@@ -3919,6 +4091,30 @@ export interface components {
             expiresIn?: number;
             /** Format: int32 */
             interval?: number;
+        };
+        AdminCreateUserRequest: {
+            username: string;
+            password: string;
+            email?: string;
+            role?: string;
+        };
+        AdminUserSummaryResponse: {
+            id?: string;
+            username?: string;
+            email?: string;
+            status?: string;
+            platformRoles?: string[];
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiResponseAdminUserSummaryResponse: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: components["schemas"]["AdminUserSummaryResponse"];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
         };
         AdminSkillMutationResponse: {
             /** Format: int64 */
@@ -4096,6 +4292,10 @@ export interface components {
             publishedVersion?: components["schemas"]["SkillLifecycleVersionResponse"];
             ownerPreviewVersion?: components["schemas"]["SkillLifecycleVersionResponse"];
             resolutionMode?: string;
+            packageType?: string;
+            department?: string;
+            /** Format: int64 */
+            viewCount?: number;
         };
         ApiResponseBoolean: {
             /** Format: int32 */
@@ -4352,6 +4552,10 @@ export interface components {
             ownerPreviewVersion?: components["schemas"]["SkillLifecycleVersionResponse"];
             ownerPreviewReviewComment?: string;
             resolutionMode?: string;
+            packageType?: string;
+            department?: string;
+            /** Format: int64 */
+            viewCount?: number;
         };
         ApiResponseReviewSkillDetailResponse: {
             /** Format: int32 */
@@ -4662,6 +4866,134 @@ export interface components {
             /** Format: int32 */
             size?: number;
         };
+        ApiResponseListDashboardTopItemResponse: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: components["schemas"]["DashboardTopItemResponse"][];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
+        };
+        DashboardTopItemResponse: {
+            name?: string;
+            slug?: string;
+            namespaceSlug?: string;
+            /** Format: int64 */
+            downloads?: number;
+            /** Format: int64 */
+            views?: number;
+            department?: string;
+        };
+        ApiResponseDashboardSummaryResponse: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: components["schemas"]["DashboardSummaryResponse"];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
+        };
+        DashboardSummaryResponse: {
+            /** Format: int64 */
+            total?: number;
+            byType?: {
+                [key: string]: number;
+            };
+            /** Format: int64 */
+            totalDownloads?: number;
+            /** Format: int64 */
+            totalViews?: number;
+            /** Format: double */
+            skillGrowth?: number;
+            /** Format: double */
+            downloadGrowth?: number;
+            /** Format: double */
+            viewGrowth?: number;
+            /** Format: int64 */
+            newThisWeek?: number;
+            newThisWeekByType?: {
+                [key: string]: number;
+            };
+            /** Format: double */
+            overallOpenShareRate?: number;
+            /** Format: int64 */
+            newThisMonth?: number;
+        };
+        ApiResponseDashboardMetricsResponse: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: components["schemas"]["DashboardMetricsResponse"];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
+        };
+        DashboardMetricsResponse: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: double */
+            reuseRate?: number;
+            /** Format: double */
+            activityRate?: number;
+            /** Format: double */
+            contributionRate?: number;
+            /** Format: double */
+            openShareRate?: number;
+            departments?: components["schemas"]["DepartmentMetric"][];
+        };
+        DepartmentMetric: {
+            department?: string;
+            /** Format: int64 */
+            total?: number;
+            /** Format: double */
+            reuseRate?: number;
+            /** Format: double */
+            activityRate?: number;
+            /** Format: double */
+            contributionRate?: number;
+            /** Format: double */
+            openShareRate?: number;
+        };
+        ApiResponseDashboardContributionsResponse: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: components["schemas"]["DashboardContributionsResponse"];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
+        };
+        DashboardContributionsResponse: {
+            /** Format: int64 */
+            total?: number;
+            /** Format: int64 */
+            allTotal?: number;
+            byType?: {
+                [key: string]: components["schemas"]["TypeContribution"];
+            };
+        };
+        DepartmentShare: {
+            name?: string;
+            /** Format: int64 */
+            count?: number;
+            /** Format: double */
+            percentage?: number;
+        };
+        TypeContribution: {
+            /** Format: int64 */
+            total?: number;
+            departments?: components["schemas"]["DepartmentShare"][];
+        };
+        ApiResponseListString: {
+            /** Format: int32 */
+            code?: number;
+            msg?: string;
+            data?: string[];
+            /** Format: date-time */
+            timestamp?: string;
+            requestId?: string;
+        };
         ClawHubWhoamiResponse: {
             user?: components["schemas"]["User"];
         };
@@ -4871,15 +5203,6 @@ export interface components {
             provider?: string;
             displayName?: string;
             actionUrl?: string;
-        };
-        AdminUserSummaryResponse: {
-            id?: string;
-            username?: string;
-            email?: string;
-            status?: string;
-            platformRoles?: string[];
-            /** Format: date-time */
-            createdAt?: string;
         };
         ApiResponsePageResponseAdminUserSummaryResponse: {
             /** Format: int32 */
@@ -6550,6 +6873,12 @@ export interface operations {
             query: {
                 visibility: string;
                 confirmWarnings?: boolean;
+                packageType?: string;
+                department?: string;
+                displayName?: string;
+                summary?: string;
+                businessScope?: string;
+                businessSubTags?: string;
             };
             header?: never;
             path: {
@@ -6582,6 +6911,12 @@ export interface operations {
             query: {
                 visibility: string;
                 confirmWarnings?: boolean;
+                packageType?: string;
+                department?: string;
+                displayName?: string;
+                summary?: string;
+                businessScope?: string;
+                businessSubTags?: string;
             };
             header?: never;
             path: {
@@ -7708,18 +8043,23 @@ export interface operations {
             };
         };
     };
-    publishSkill: {
+    publishSkill_1: {
         parameters: {
             query: {
                 payload: string;
                 files: string[];
                 confirmWarnings?: boolean;
+                packageType?: string;
             };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClawHubJsonPublishRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -7754,11 +8094,64 @@ export interface operations {
             };
         };
     };
+    uploadFile: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Content-Type"?: string;
+            };
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClawHubUploadFileResponse"];
+                };
+            };
+        };
+    };
+    createUploadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClawHubUploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ClawHubUploadUrlResponse"];
+                };
+            };
+        };
+    };
     publish_2: {
         parameters: {
             query: {
                 namespace: string;
                 confirmWarnings?: boolean;
+                packageType?: string;
             };
             header?: never;
             path?: never;
@@ -8016,6 +8409,55 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseDeviceCodeResponse"];
+                };
+            };
+        };
+    };
+    listUsers: {
+        parameters: {
+            query?: {
+                search?: string;
+                status?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponsePageResponseAdminUserSummaryResponse"];
+                };
+            };
+        };
+    };
+    createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminCreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAdminUserSummaryResponse"];
                 };
             };
         };
@@ -8528,6 +8970,8 @@ export interface operations {
                 q?: string;
                 namespace?: string;
                 label?: string[];
+                packageType?: string;
+                department?: string;
                 sort?: string;
                 page?: number;
                 size?: number;
@@ -10279,6 +10723,128 @@ export interface operations {
             };
         };
     };
+    top10: {
+        parameters: {
+            query?: {
+                type?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListDashboardTopItemResponse"];
+                };
+            };
+        };
+    };
+    summary_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDashboardSummaryResponse"];
+                };
+            };
+        };
+    };
+    metrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDashboardMetricsResponse"];
+                };
+            };
+        };
+    };
+    contributions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseDashboardContributionsResponse"];
+                };
+            };
+        };
+    };
+    departments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListString"];
+                };
+            };
+        };
+    };
+    businessScopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListString"];
+                };
+            };
+        };
+    };
     whoami: {
         parameters: {
             query?: never;
@@ -10563,31 +11129,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseAuthMeResponse"];
-                };
-            };
-        };
-    };
-    listUsers: {
-        parameters: {
-            query?: {
-                search?: string;
-                status?: string;
-                page?: number;
-                size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponsePageResponseAdminUserSummaryResponse"];
                 };
             };
         };

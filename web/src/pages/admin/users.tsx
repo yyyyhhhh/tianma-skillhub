@@ -1,5 +1,6 @@
 import { KeyboardEvent, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Eye, EyeOff } from 'lucide-react'
 import { formatLocalDateTime } from '@/shared/lib/date-time'
 import { Card } from '@/shared/ui/card'
 import { Input } from '@/shared/ui/input'
@@ -33,6 +34,7 @@ import { CopyButton } from '@/shared/components/copy-button'
 import {
   useAdminUsers,
   useApproveUser,
+  useCreateAdminUser,
   useDisableUser,
   useEnableUser,
   useTriggerUserPasswordReset,
@@ -63,6 +65,13 @@ export function AdminUsersPage() {
   const [newRole, setNewRole] = useState('')
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [actionType, setActionType] = useState<'ban' | 'unban' | 'reset'>('ban')
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [createUsername, setCreateUsername] = useState('')
+  const [createPassword, setCreatePassword] = useState('')
+  const [showCreatePassword, setShowCreatePassword] = useState(false)
+  const [createEmail, setCreateEmail] = useState('')
+  const [createRole, setCreateRole] = useState('USER')
+  const [createError, setCreateError] = useState<string | null>(null)
 
   const { data, isLoading } = useAdminUsers({
     search,
@@ -72,6 +81,7 @@ export function AdminUsersPage() {
   })
 
   const updateRoleMutation = useUpdateUserRole()
+  const createUserMutation = useCreateAdminUser()
   const approveUserMutation = useApproveUser()
   const disableUserMutation = useDisableUser()
   const enableUserMutation = useEnableUser()
@@ -84,6 +94,15 @@ export function AdminUsersPage() {
   useEffect(() => {
     setPage(0)
   }, [search, statusFilter])
+
+  const resetCreateForm = () => {
+    setCreateUsername('')
+    setCreatePassword('')
+    setShowCreatePassword(false)
+    setCreateEmail('')
+    setCreateRole('USER')
+    setCreateError(null)
+  }
 
   const applySearch = () => {
     setSearch(searchInput.trim())
@@ -131,6 +150,29 @@ export function AdminUsersPage() {
     }
   }
 
+  const confirmCreateUser = async () => {
+    const username = createUsername.trim()
+    const password = createPassword
+    const email = createEmail.trim()
+    if (!username || !password) {
+      return
+    }
+    setCreateError(null)
+    try {
+      await createUserMutation.mutateAsync({
+        username,
+        password,
+        email: email || undefined,
+        role: createRole || 'USER',
+      })
+      setCreateDialogOpen(false)
+      resetCreateForm()
+    } catch (error) {
+      console.error('Failed to create user:', error)
+      setCreateError(error instanceof Error ? error.message : t('adminUsers.createTitle'))
+    }
+  }
+
   const confirmUserAction = async () => {
     if (!selectedUser) return
     try {
@@ -150,9 +192,20 @@ export function AdminUsersPage() {
 
   return (
     <div className="space-y-8 animate-fade-up">
-      <div>
-        <h1 className="text-4xl font-bold font-heading mb-2">{t('adminUsers.title')}</h1>
-        <p className="text-muted-foreground text-lg">{t('adminUsers.subtitle')}</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold font-heading mb-2">{t('adminUsers.title')}</h1>
+          <p className="text-muted-foreground text-lg">{t('adminUsers.subtitle')}</p>
+        </div>
+        <Button
+          type="button"
+          onClick={() => {
+            resetCreateForm()
+            setCreateDialogOpen(true)
+          }}
+        >
+          {t('adminUsers.createAction')}
+        </Button>
       </div>
 
       <Card className="p-5">
@@ -324,7 +377,97 @@ export function AdminUsersPage() {
         </>
       )}
 
-   <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          setCreateDialogOpen(open)
+          if (!open) {
+            resetCreateForm()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t('adminUsers.createTitle')}</DialogTitle>
+            <DialogDescription>{t('adminUsers.createDesc')}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="create-username">{t('adminUsers.formUsername')}</Label>
+              <Input
+                id="create-username"
+                autoComplete="off"
+                value={createUsername}
+                onChange={(e) => setCreateUsername(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t('adminUsers.formUsernameHint')}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-password">{t('adminUsers.formPassword')}</Label>
+              <div className="relative">
+                <Input
+                  id="create-password"
+                  type={showCreatePassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  value={createPassword}
+                  onChange={(e) => setCreatePassword(e.target.value)}
+                  className="pr-12"
+                />
+                <button
+                  type="button"
+                  aria-label={showCreatePassword ? t('adminUsers.hidePassword') : t('adminUsers.showPassword')}
+                  aria-pressed={showCreatePassword}
+                  onClick={() => setShowCreatePassword((current) => !current)}
+                  className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {showCreatePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">{t('adminUsers.formPasswordHint')}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-email">{t('adminUsers.formEmail')}</Label>
+              <Input
+                id="create-email"
+                type="email"
+                autoComplete="off"
+                value={createEmail}
+                onChange={(e) => setCreateEmail(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t('adminUsers.formEmailHint')}</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-role">{t('adminUsers.roleLabel')}</Label>
+              <Select value={createRole} onValueChange={setCreateRole}>
+                <SelectTrigger id="create-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleOptions.map((roleOption) => (
+                    <SelectItem key={roleOption.value} value={roleOption.value}>
+                      {roleOption.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {createError ? <p className="text-sm text-destructive">{createError}</p> : null}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
+              {t('dialog.cancel')}
+            </Button>
+            <Button
+              onClick={confirmCreateUser}
+              disabled={createUserMutation.isPending || !createUsername.trim() || !createPassword}
+            >
+              {t('adminUsers.createSubmit')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('adminUsers.changeRoleTitle')}</DialogTitle>

@@ -265,4 +265,40 @@ class UserManagementControllerTest {
 
         verify(passwordResetService).adminTriggerPasswordReset("user-123", "user-42");
     }
+
+    @Test
+    void createUser_withUserAdminRole_returns200() throws Exception {
+        PlatformPrincipal principal = new PlatformPrincipal(
+                "user-42", "admin", "admin@example.com", "", "github", Set.of("USER_ADMIN")
+        );
+        var auth = new UsernamePasswordAuthenticationToken(
+                principal, null, List.of(new SimpleGrantedAuthority("ROLE_USER_ADMIN"))
+        );
+
+        when(adminUserAppService.createLocalUser(
+                "bob", "Abcd123!", null, "USER", Set.of("USER_ADMIN")))
+                .thenReturn(new AdminUserSummaryResponse(
+                        "usr_1",
+                        "bob",
+                        null,
+                        "ACTIVE",
+                        List.of("USER"),
+                        Instant.parse("2026-03-13T09:00:00Z")));
+
+        mockMvc.perform(post("/api/v1/admin/users")
+                        .with(authentication(auth))
+                        .with(csrf())
+                        .contentType(APPLICATION_JSON)
+                        .content("""
+                                {"username":"bob","password":"Abcd123!","role":"USER"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.data.id").value("usr_1"))
+                .andExpect(jsonPath("$.data.username").value("bob"))
+                .andExpect(jsonPath("$.data.platformRoles[0]").value("USER"));
+
+        verify(adminUserAppService).createLocalUser(
+                "bob", "Abcd123!", null, "USER", Set.of("USER_ADMIN"));
+    }
 }

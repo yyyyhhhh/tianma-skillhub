@@ -173,6 +173,9 @@ export interface SkillSummary {
   publishedVersion?: SkillLifecycleVersion
   ownerPreviewVersion?: SkillLifecycleVersion
   resolutionMode?: string
+  packageType?: string
+  department?: string
+  viewCount?: number
 }
 
 export type LabelItem = Omit<components['schemas']['SkillLabelDto'], 'slug' | 'type' | 'displayName'> & {
@@ -257,6 +260,9 @@ export interface SkillDetail {
   ownerPreviewVersion?: SkillLifecycleVersion
   ownerPreviewReviewComment?: string
   resolutionMode?: string
+  packageType?: string
+  department?: string
+  viewCount?: number
 }
 
 export interface SubmitPromotionRequest {
@@ -351,6 +357,7 @@ export interface SearchParams {
   q?: string
   namespace?: string
   label?: string
+  department?: string
   sort?: string
   page?: number
   size?: number

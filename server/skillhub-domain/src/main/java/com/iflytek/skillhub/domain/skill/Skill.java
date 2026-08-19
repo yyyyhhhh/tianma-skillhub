@@ -45,6 +45,22 @@ public class Skill {
     @Column(name = "download_count", nullable = false)
     private Long downloadCount = 0L;
 
+    @Column(name = "view_count", nullable = false)
+    private Long viewCount = 0L;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "package_type", nullable = false, length = 20)
+    private PackageType packageType = PackageType.SKILL;
+
+    @Column(name = "department", length = 100)
+    private String department;
+
+    @Column(name = "business_scope", length = 50)
+    private String businessScope;
+
+    @Column(name = "business_sub_tags", length = 500)
+    private String businessSubTags;
+
     @Column(nullable = false)
     private boolean hidden = false;
 
@@ -145,6 +161,26 @@ public class Skill {
         return downloadCount;
     }
 
+    public Long getViewCount() {
+        return viewCount;
+    }
+
+    public PackageType getPackageType() {
+        return packageType != null ? packageType : PackageType.SKILL;
+    }
+
+    public String getDepartment() {
+        return department;
+    }
+
+    public String getBusinessScope() {
+        return businessScope;
+    }
+
+    public String getBusinessSubTags() {
+        return businessSubTags;
+    }
+
     public boolean isHidden() {
         return hidden;
     }
@@ -196,6 +232,26 @@ public class Skill {
 
     public void setSummary(String summary) {
         this.summary = summary;
+    }
+
+    public void setPackageType(PackageType packageType) {
+        this.packageType = packageType != null ? packageType : PackageType.SKILL;
+    }
+
+    public void setDepartment(String department) {
+        this.department = department;
+    }
+
+    public void setBusinessScope(String businessScope) {
+        this.businessScope = businessScope;
+    }
+
+    public void setBusinessSubTags(String businessSubTags) {
+        this.businessSubTags = businessSubTags;
+    }
+
+    public void incrementViewCount() {
+        this.viewCount = (this.viewCount == null ? 0L : this.viewCount) + 1L;
     }
 
     public void setSourceSkillId(Long sourceSkillId) {

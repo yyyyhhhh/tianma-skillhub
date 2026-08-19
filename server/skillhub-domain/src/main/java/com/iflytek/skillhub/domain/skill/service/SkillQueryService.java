@@ -115,7 +115,10 @@ public class SkillQueryService {
             SkillLifecycleProjectionService.VersionProjection publishedVersion,
             SkillLifecycleProjectionService.VersionProjection ownerPreviewVersion,
             String ownerPreviewReviewComment,
-            String resolutionMode
+            String resolutionMode,
+            String packageType,
+            String department,
+            Long viewCount
     ) {}
 
     public record SkillVersionDetailDTO(
@@ -221,6 +224,9 @@ public class SkillQueryService {
                 .filter(name -> name != null && !name.isBlank())
                 .orElse(null);
 
+        skillRepository.incrementViewCount(skill.getId());
+        long viewCount = (skill.getViewCount() == null ? 0L : skill.getViewCount()) + 1L;
+
         return new SkillDetailDTO(
                 skill.getId(),
                 skill.getSlug(),
@@ -247,7 +253,10 @@ public class SkillQueryService {
                 publishedVersion,
                 ownerPreviewVersion,
                 ownerPreviewReviewComment,
-                projection.resolutionMode().name()
+                projection.resolutionMode().name(),
+                skill.getPackageType() != null ? skill.getPackageType().name() : PackageType.SKILL.name(),
+                skill.getDepartment(),
+                viewCount
         );
     }
 

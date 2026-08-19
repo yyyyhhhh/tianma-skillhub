@@ -33,19 +33,22 @@ public class OAuthLoginFlowService {
     private final Map<String, OAuthClaimsExtractor> extractors;
     private final AccessPolicy accessPolicy;
     private final IdentityBindingService identityBindingService;
+    private final DingTalkOAuth2UserClient dingTalkOAuth2UserClient;
 
     public OAuthLoginFlowService(List<OAuthClaimsExtractor> extractorList,
                                  AccessPolicy accessPolicy,
-                                 IdentityBindingService identityBindingService) {
+                                 IdentityBindingService identityBindingService,
+                                 DingTalkOAuth2UserClient dingTalkOAuth2UserClient) {
         this.extractors = extractorList.stream()
                 .collect(Collectors.toMap(OAuthClaimsExtractor::getProvider, Function.identity()));
         this.accessPolicy = accessPolicy;
         this.identityBindingService = identityBindingService;
+        this.dingTalkOAuth2UserClient = dingTalkOAuth2UserClient;
     }
 
     public AuthenticatedLoginContext loadLoginContext(OAuth2UserRequest request) {
-        OAuth2User upstreamUser = delegate.loadUser(request);
         String registrationId = request.getClientRegistration().getRegistrationId();
+        OAuth2User upstreamUser = loadUpstreamUser(request, registrationId);
 
         OAuthClaimsExtractor extractor = extractors.get(registrationId);
         if (extractor == null) {
@@ -57,6 +60,13 @@ public class OAuthLoginFlowService {
         OAuthClaims claims = extractor.extract(request, upstreamUser);
         PlatformPrincipal principal = authenticate(claims);
         return new AuthenticatedLoginContext(upstreamUser, principal);
+    }
+
+    private OAuth2User loadUpstreamUser(OAuth2UserRequest request, String registrationId) {
+        if (DingTalkOAuth2AccessTokenResponseClient.REGISTRATION_ID.equals(registrationId)) {
+            return dingTalkOAuth2UserClient.loadUser(request);
+        }
+        return delegate.loadUser(request);
     }
 
     public PlatformPrincipal authenticate(OAuthClaims claims) {

@@ -37,7 +37,9 @@ public class MultipartPackageExtractor {
         String version,
         String changelog,
         Boolean acceptLicenseTerms,
+        String packageType,
         List<String> tags,
+        List<String> categories,
         ForkOf forkOf
     ) {
         public record ForkOf(String slug, String version) {}

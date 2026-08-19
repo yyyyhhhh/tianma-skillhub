@@ -1,7 +1,8 @@
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
 import type { PagedResponse, SkillDetail, SkillSummary } from '@/api/types'
-import { incrementSkillDownloadCount } from './skill-download-cache'
+import { getSkillDetailQueryKey } from '@/shared/hooks/query-keys'
+import { incrementSkillDownloadCount, parseContentDispositionFilename } from './skill-download-cache'
 
 const publishedLifecycleVersion = {
   id: 100,
@@ -70,14 +71,15 @@ describe('incrementSkillDownloadCount', () => {
       size: 12,
     }
 
-    queryClient.setQueryData(['skills', '@team', 'demo-skill'], createSkillDetail({ namespace: 'team' }))
+    const detailKey = getSkillDetailQueryKey('@team', 'demo-skill')
+    queryClient.setQueryData(detailKey, createSkillDetail({ namespace: 'team' }))
     queryClient.setQueryData(['skills', 'my'], searchPage.items)
     queryClient.setQueryData(['skills', 'stars'], searchPage.items)
     queryClient.setQueryData(['skills', 'search', { q: '', sort: 'downloads', page: 0, size: 12, starredOnly: false }], searchPage)
 
     incrementSkillDownloadCount(queryClient, { namespace: '@team', slug: 'demo-skill' })
 
-    expect(queryClient.getQueryData<SkillDetail>(['skills', '@team', 'demo-skill'])?.downloadCount).toBe(11)
+    expect(queryClient.getQueryData<SkillDetail>(detailKey)?.downloadCount).toBe(11)
     expect(queryClient.getQueryData<SkillSummary[]>(['skills', 'my'])?.[0]?.downloadCount).toBe(11)
     expect(queryClient.getQueryData<SkillSummary[]>(['skills', 'stars'])?.[0]?.downloadCount).toBe(11)
     expect(
@@ -90,5 +92,12 @@ describe('incrementSkillDownloadCount', () => {
         ['skills', 'search', { q: '', sort: 'downloads', page: 0, size: 12, starredOnly: false }],
       )?.items[1]?.downloadCount,
     ).toBe(4)
+  })
+})
+
+describe('parseContentDispositionFilename', () => {
+  it('parses plain and utf-8 filenames', () => {
+    expect(parseContentDispositionFilename('attachment; filename="demo.zip"')).toBe('demo.zip')
+    expect(parseContentDispositionFilename("attachment; filename*=UTF-8''Jsct%20Aaa.zip")).toBe('Jsct Aaa.zip')
   })
 })

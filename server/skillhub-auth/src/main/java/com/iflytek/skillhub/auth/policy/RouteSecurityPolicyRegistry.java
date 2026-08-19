@@ -67,6 +67,8 @@ public class RouteSecurityPolicyRegistry {
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/skills/*/*/tags/*/files"),
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/skills/*/*/tags/*/file"),
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/labels"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/dashboard/**"),
+            RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/web/asset-meta/**"),
             RouteAuthorizationPolicy.roles(HttpMethod.DELETE, "/api/v1/skills/id/*", "SUPER_ADMIN"),
             RouteAuthorizationPolicy.roles(HttpMethod.DELETE, "/api/v1/skills/*/*", "SUPER_ADMIN"),
             RouteAuthorizationPolicy.authenticated(HttpMethod.DELETE, "/api/web/skills/id/*"),
@@ -83,7 +85,9 @@ public class RouteSecurityPolicyRegistry {
             RouteAuthorizationPolicy.permitAll(HttpMethod.GET, "/api/cli/v1/skills/*/*/versions/*/download"),
             RouteAuthorizationPolicy.authenticated(HttpMethod.DELETE, "/api/cli/v1/skills/*/*"),
             RouteAuthorizationPolicy.authenticated(HttpMethod.POST, "/api/cli/v1/skills/*/publish"),
-            RouteAuthorizationPolicy.authenticated(HttpMethod.POST, "/api/cli/v1/skills/*/publish/validate")
+            RouteAuthorizationPolicy.authenticated(HttpMethod.POST, "/api/cli/v1/skills/*/publish/validate"),
+            RouteAuthorizationPolicy.authenticated(HttpMethod.POST, "/api/v1/skills/-/upload-url"),
+            RouteAuthorizationPolicy.authenticated(HttpMethod.POST, "/api/v1/skills/-/upload/*")
     );
 
     private static final List<ApiTokenPolicy> API_TOKEN_POLICIES = List.of(
@@ -113,6 +117,8 @@ public class RouteSecurityPolicyRegistry {
             ApiTokenPolicy.require(HttpMethod.DELETE, "/api/v1/skills/id/*", "skill:delete"),
             ApiTokenPolicy.require(HttpMethod.DELETE, "/api/v1/skills/*/*", "skill:delete"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills/-/upload-url", "skill:publish"),
+            ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills/-/upload/*", "skill:publish"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/skills/*/publish", "skill:publish"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/web/skills/*/publish", "skill:publish"),
             ApiTokenPolicy.require(HttpMethod.POST, "/api/v1/publish", "skill:publish"),

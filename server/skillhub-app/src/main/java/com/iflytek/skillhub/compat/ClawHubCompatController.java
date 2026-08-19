@@ -2,6 +2,7 @@ package com.iflytek.skillhub.compat;
 
 import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.compat.dto.ClawHubDeleteResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubJsonPublishRequest;
 import com.iflytek.skillhub.compat.dto.ClawHubPublishResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubResolveResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubSearchResponse;
@@ -9,6 +10,9 @@ import com.iflytek.skillhub.compat.dto.ClawHubSkillListResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubSkillResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubStarResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubUnstarResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadFileResponse;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadUrlRequest;
+import com.iflytek.skillhub.compat.dto.ClawHubUploadUrlResponse;
 import com.iflytek.skillhub.compat.dto.ClawHubWhoamiResponse;
 import com.iflytek.skillhub.domain.namespace.NamespaceRole;
 import com.iflytek.skillhub.ratelimit.RateLimit;
@@ -17,6 +21,7 @@ import java.io.IOException;
 import java.util.Map;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,6 +29,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -135,20 +142,54 @@ public class ClawHubCompatController {
     }
 
     @RateLimit(category = "skills", authenticated = 60, anonymous = 20)
-    @PostMapping("/skills")
+    @PostMapping(value = "/skills", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ClawHubPublishResponse publishSkill(@RequestParam("payload") String payloadJson,
                                                @RequestParam("files") MultipartFile[] files,
                                                @RequestParam(value = "confirmWarnings", defaultValue = "false") boolean confirmWarnings,
+                                               @RequestParam(value = "packageType", required = false) String packageType,
                                                @AuthenticationPrincipal PlatformPrincipal principal,
                                                HttpServletRequest request) throws IOException {
         return clawHubCompatAppService.publishSkill(
                 payloadJson,
                 files,
                 confirmWarnings,
+                packageType,
                 principal,
                 request.getRemoteAddr(),
                 request.getHeader("User-Agent")
         );
+    }
+
+    @RateLimit(category = "skills", authenticated = 60, anonymous = 20)
+    @PostMapping(value = "/skills", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ClawHubPublishResponse publishSkillJson(@RequestBody ClawHubJsonPublishRequest body,
+                                                   @RequestParam(value = "packageType", required = false) String packageType,
+                                                   @AuthenticationPrincipal PlatformPrincipal principal,
+                                                   HttpServletRequest request) {
+        return clawHubCompatAppService.publishJson(
+                body,
+                packageType,
+                principal,
+                request.getRemoteAddr(),
+                request.getHeader("User-Agent")
+        );
+    }
+
+    // Per-file CLI publish uses upload-url + upload (~2 calls/file). Package allows up to 500 files.
+    @RateLimit(category = "clawhub-upload", authenticated = 1500, anonymous = 0, windowSeconds = 60)
+    @PostMapping("/skills/-/upload-url")
+    public ClawHubUploadUrlResponse createUploadUrl(@RequestBody ClawHubUploadUrlRequest body,
+                                                    @AuthenticationPrincipal PlatformPrincipal principal) {
+        return clawHubCompatAppService.createUploadUrl(body, principal);
+    }
+
+    @RateLimit(category = "clawhub-upload", authenticated = 1500, anonymous = 0, windowSeconds = 60)
+    @PostMapping("/skills/-/upload/{ticket}")
+    public ClawHubUploadFileResponse uploadFile(@PathVariable String ticket,
+                                                @RequestBody byte[] body,
+                                                @RequestHeader(value = HttpHeaders.CONTENT_TYPE, required = false) String contentType,
+                                                @AuthenticationPrincipal PlatformPrincipal principal) {
+        return clawHubCompatAppService.storeUploadedFile(ticket, body, contentType, principal);
     }
 
     @RateLimit(category = "publish", authenticated = 60, anonymous = 20)
@@ -156,12 +197,14 @@ public class ClawHubCompatController {
     public ClawHubPublishResponse publish(@RequestParam("file") MultipartFile file,
                                           @RequestParam("namespace") String namespace,
                                           @RequestParam(value = "confirmWarnings", defaultValue = "false") boolean confirmWarnings,
+                                          @RequestParam(value = "packageType", required = false) String packageType,
                                           @AuthenticationPrincipal PlatformPrincipal principal,
                                           HttpServletRequest request) throws IOException {
         return clawHubCompatAppService.publish(
                 file,
                 namespace,
                 confirmWarnings,
+                packageType,
                 principal,
                 request.getRemoteAddr(),
                 request.getHeader("User-Agent")

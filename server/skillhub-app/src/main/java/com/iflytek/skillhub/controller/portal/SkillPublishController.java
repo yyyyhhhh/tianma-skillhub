@@ -4,7 +4,9 @@ import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
 import com.iflytek.skillhub.controller.BaseApiController;
 import com.iflytek.skillhub.controller.support.SkillPackageArchiveExtractor;
 import com.iflytek.skillhub.domain.shared.exception.DomainBadRequestException;
+import com.iflytek.skillhub.domain.skill.PackageType;
 import com.iflytek.skillhub.domain.skill.SkillVisibility;
+import com.iflytek.skillhub.domain.skill.service.PublishMetadata;
 import com.iflytek.skillhub.domain.skill.service.SkillPublishService;
 import com.iflytek.skillhub.domain.skill.validation.PackageEntry;
 import com.iflytek.skillhub.dto.ApiResponse;
@@ -54,9 +56,26 @@ public class SkillPublishController extends BaseApiController {
             @RequestParam("file") MultipartFile file,
             @RequestParam("visibility") String visibility,
             @RequestParam(value = "confirmWarnings", defaultValue = "false") boolean confirmWarnings,
+            @RequestParam(value = "packageType", required = false) String packageType,
+            @RequestParam(value = "department", required = false) String department,
+            @RequestParam(value = "displayName", required = false) String displayName,
+            @RequestParam(value = "summary", required = false) String summary,
+            @RequestParam(value = "businessScope", required = false) String businessScope,
+            @RequestParam(value = "businessSubTags", required = false) String businessSubTags,
             @AuthenticationPrincipal PlatformPrincipal principal) throws IOException {
 
         SkillVisibility skillVisibility = SkillVisibility.valueOf(visibility.toUpperCase());
+        PublishMetadata publishMetadata = new PublishMetadata(
+                PackageType.fromNullable(packageType),
+                department,
+                displayName,
+                summary,
+                businessScope,
+                null,
+                null,
+                null,
+                businessSubTags
+        ).withDefaults();
 
         List<PackageEntry> entries;
         List<String> extractionWarnings;
@@ -81,7 +100,8 @@ public class SkillPublishController extends BaseApiController {
                 principal.userId(),
                 skillVisibility,
                 principal.platformRoles(),
-                confirmWarnings
+                confirmWarnings,
+                publishMetadata
         );
 
         PublishResponse response = new PublishResponse(

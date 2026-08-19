@@ -138,7 +138,8 @@ $env:CLAWHUB_SITE = '${baseUrl}'
 $env:CLAWHUB_REGISTRY = '${baseUrl}'`
 
   const installCode = t(`${ns}.quickStart.steps.installSkills.code`, {
-    defaultValue: '# 搜索技能\nclawhub search <keyword>\n\n# 安装技能\nclawhub install <skill>',
+    registry: baseUrl,
+    defaultValue: `# 搜索技能\nclawhub search <keyword> --registry ${baseUrl}\n\n# 安装技能\nclawhub install <skill> --registry ${baseUrl}`,
   })
 
   const publishCode = t(`${ns}.quickStart.steps.publishSkills.code`, {

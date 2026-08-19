@@ -39,6 +39,17 @@ export function useAdminUsers(params: AdminUsersParams) {
   })
 }
 
+export function useCreateAdminUser() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: { username: string; password: string; email?: string; role?: string }) =>
+      adminApi.createUser(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+    },
+  })
+}
+
 export function useUpdateUserRole() {
   const queryClient = useQueryClient()
   return useMutation({

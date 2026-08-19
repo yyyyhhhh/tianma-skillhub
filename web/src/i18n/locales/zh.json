@@ -13,8 +13,34 @@
     "explore": "探索",
     "dashboard": "控制台",
     "mySkills": "我的技能",
+    "myAssets": "我的资产",
     "publish": "发布",
     "login": "登录"
+  },
+  "opsBoard": {
+    "title": "工作看板：各职能资产运营态势",
+    "subtitle": "量化追踪后端、前端、UI、产品、测试、运维等职能的 AI 资产贡献度、活跃度与复用度",
+    "totalAssets": "资产登记总数",
+    "updatedAt": "更新于 {{time}}",
+    "totalDownloads": "资产总下载量",
+    "totalViews": "资产总访问量",
+    "openShareRate": "开放共享率",
+    "deptOverview": "职能运营总览",
+    "deptOverviewHint": "系统自动聚合各职能资产的复用度、活跃度、贡献度与开放共享率。",
+    "colDepartment": "所属职能",
+    "colTotal": "总资产数",
+    "colReuse": "复用度",
+    "colActivity": "活跃度",
+    "colContribution": "贡献度",
+    "colOpenShare": "开放共享率",
+    "colName": "名称",
+    "colViews": "浏览",
+    "colDownloads": "下载",
+    "hotAssets": "热门资产",
+    "contributions": "贡献分析",
+    "totalCount": "共 {{count}} 项",
+    "items": "项",
+    "empty": "暂无数据"
   },
   "landing": {
     "hero": {
@@ -56,10 +82,10 @@
       "teams": "团队"
     },
     "whySkillHub": {
-      "title": "为什么选择 SkillHub",
-      "subtitle": "专为企业打造的私有化 Agent 技能管理平台"
+      "title": "为什么选择 天马AI资产中心",
+      "subtitle": "专为企业打造的私有化 AI 资产管理平台"
     },
-    "badge": "企业级技能注册中心",
+    "badge": "企业级 AI 资产中心",
     "tagline": "发布、发现、管理",
     "taglineHighlight": " Agent 技能包",
     "description": "自托管的私有技能注册平台，为团队提供安全、高效的技能共享与协作空间",
@@ -98,7 +124,7 @@
     "ctaTitle": "准备好开始了吗？",
     "ctaDescription": "一条命令即可启动本地开发环境，体验完整的技能管理流程",
     "ctaButton": "立即体验",
-    "footerLicense": "© 2026 SkillHub。Apache License 2.0。",
+    "footerLicense": "© 2026 天马AI资产中心。Apache License 2.0。",
     "footerDocs": "文档",
     "footerGithub": "GitHub",
     "footerCommunity": "社区",
@@ -113,27 +139,28 @@
         "cli": "CLI"
       },
       "cli": {
-        "description": "安装 SkillHub CLI 到本地，后续可运行 skillhub install 安装技能",
+        "description": "安装 CLI 到本地，后续可运行 skillhub install 安装技能",
         "command": "npm i -g @astron-team/skillhub"
       },
       "agent": {
-        "description": "发送提示词给你的 Agent，以设置SkillHub Registry",
-        "command": "阅读 https://www.example.com/registry/skill.md，并按照说明完成 SkillHub Skills Registry 的配置",
-        "commandTemplate": "阅读 {{url}}，并按照说明完成 SkillHub Skills Registry 的配置"
+        "description": "发送提示词给你的 Agent，以设置 天马AI资产中心 Registry",
+        "command": "阅读 https://www.example.com/registry/skill.md，并按照说明完成 天马AI资产中心 的配置",
+        "commandTemplate": "阅读 {{url}}，并按照说明完成 天马AI资产中心 的配置"
       },
       "human": {
         "description": "使用CLI工具安装Skills",
-        "command": "npx clawhub search <keyword>"
+        "command": "npx clawhub install <skill> --registry https://www.example.com",
+        "commandTemplate": "npx clawhub install <skill> --registry {{registry}}"
       },
       "steps": {
         "configureEnv": {
           "title": "1. 配置环境变量",
-          "description": "设置 ClawHub CLI 连接到 SkillHub"
+          "description": "设置 ClawHub CLI 连接到 天马AI资产中心"
         },
         "installSkills": {
           "title": "2. 安装技能",
           "description": "搜索并安装你需要的技能",
-          "code": "# 搜索技能\nclawhub search <keyword>\n\n# 安装技能\nclawhub install <skill>"
+          "code": "# 搜索技能\nclawhub search <keyword> --registry {{registry}}\n\n# 安装技能\nclawhub install <skill> --registry {{registry}}"
         },
         "publishSkills": {
           "title": "3. 发布技能",
@@ -144,8 +171,8 @@
     }
   },
   "home": {
-    "subtitle": "技能注册中心",
-    "description": "为开发者提供高效的技能管理、分发和协作平台",
+    "subtitle": "天马AI资产中心",
+    "description": "为企业提供高效的 AI 资产管理、分发和协作平台",
     "browseSkills": "浏览技能",
     "publishSkill": "发布技能",
     "popularTitle": "热门下载",
@@ -156,17 +183,17 @@
     "quickStart": {
       "title": "快速开始",
       "subtitle": "Quick Start",
-      "description": "只需几个简单步骤，即可开始使用 SkillHub",
+      "description": "只需几个简单步骤，即可开始使用 天马AI资产中心",
       "tip": "💡 提示：访问技能详情页可获取带环境变量的一键复制安装命令",
       "steps": {
         "configureEnv": {
           "title": "1. 配置环境变量",
-          "description": "设置 ClawHub CLI 连接到 SkillHub"
+          "description": "设置 ClawHub CLI 连接到 天马AI资产中心"
         },
         "installSkills": {
           "title": "2. 安装技能",
           "description": "搜索并安装你需要的技能",
-          "code": "# 搜索技能\nclawhub search <keyword>\n\n# 安装技能\nclawhub install <skill>"
+          "code": "# 搜索技能\nclawhub search <keyword> --registry {{registry}}\n\n# 安装技能\nclawhub install <skill> --registry {{registry}}"
         },
         "publishSkills": {
           "title": "3. 发布技能",
@@ -180,7 +207,8 @@
     "title": "搜索技能",
     "placeholder": "搜索技能...",
     "filters": {
-      "label": "筛选:"
+      "label": "筛选:",
+      "allDepartments": "全部职能"
     },
     "sort": {
       "label": "排序:",
@@ -207,7 +235,7 @@
     "clear": "清空搜索"
   },
   "login": {
-    "title": "登录 SkillHub",
+    "title": "登录 天马AI资产中心",
     "subtitle": "选择一个方式登录以继续",
     "tabPassword": "账号密码",
     "tabOAuth": "OAuth",
@@ -227,7 +255,7 @@
     "oauthHint": "使用 OAuth 登录时，认证完成后会自动返回当前站点。",
     "passwordCompatHint": "当前部署已启用账号密码兼容接入层。表单将路由到 {{name}}，而不是固定使用本地账号接口。",
     "enterpriseSsoTitle": "企业单点登录",
-    "enterpriseSsoHint": "当前部署已启用兼容接入层。若浏览器中已存在 {{name}} 会话，可直接尝试建立 SkillHub 登录态。",
+    "enterpriseSsoHint": "当前部署已启用兼容接入层。若浏览器中已存在 {{name}} 会话，可直接尝试建立 天马AI资产中心 登录态。",
     "enterpriseSsoAutoHint": "当前部署已启用自动 {{name}} 探测。若未成功，你仍可继续使用现有登录方式。",
     "enterpriseSsoAction": "尝试 {{name}} 登录",
     "enterpriseSsoSubmitting": "正在尝试 {{name}} 登录...",
@@ -244,7 +272,7 @@
     "username": "用户名",
     "email": "邮箱",
     "password": "密码",
-    "usernamePlaceholder": "3-64 位字母、数字或下划线",
+    "usernamePlaceholder": "3-64 位字母、数字、下划线或中文",
     "emailPlaceholder": "请输入邮箱",
     "emailRequired": "请输入邮箱",
     "passwordPlaceholder": "至少 8 位，包含 3 种字符类型",
@@ -254,7 +282,7 @@
     "login": "返回登录",
     "oauthHint": "直接使用现有 OAuth 账户进入平台，无需再创建本地密码。",
     "usernameRequired": "请输入用户名",
-    "usernameInvalid": "仅支持字母、数字或下划线（3-64 位）",
+    "usernameInvalid": "仅支持字母、数字、下划线或中文（3-64 位）",
     "usernameExists": "用户名已存在",
     "passwordRequired": "请输入密码",
     "passwordTooShort": "密码至少需要 8 个字符",
@@ -623,7 +651,20 @@
     "confirmAction": "确认操作",
     "confirmDisable": "确定要禁用用户 {{username}} 吗？",
     "confirmEnable": "确定要启用用户 {{username}} 吗？",
-    "confirmResetPassword": "确定给用户 {{username}} 发送密码重置验证码吗？"
+    "confirmResetPassword": "确定给用户 {{username}} 发送密码重置验证码吗？",
+    "createAction": "新增用户",
+    "createTitle": "新增本地用户",
+    "createDesc": "创建可用用户名和密码登录的本地账号，并可指定初始角色。",
+    "formUsername": "用户名",
+    "formUsernameHint": "3-64 位，仅字母、数字、下划线或中文",
+    "formPassword": "初始密码",
+    "formPasswordHint": "至少 8 位，且包含至少 3 种字符类型",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "formEmail": "邮箱（可选）",
+    "formEmailHint": "用于密码重置通知；可不填",
+    "createSubmit": "创建",
+    "createSuccess": "用户已创建"
   },
   "adminLabels": {
     "title": "标签管理",
@@ -1212,7 +1253,7 @@
     "formatHint": "仅支持 .zip 格式"
   },
   "layout": {
-    "footerDescription": "技能注册中心，为开发者提供高效的技能管理和分发平台。"
+    "footerDescription": "天马AI资产中心，为企业提供高效的 AI 资产管理与分发平台。"
   },
   "nsReviews": {
     "title": "命名空间审核",
@@ -1344,14 +1385,76 @@
     "community": "社区",
     "privacy": "隐私政策",
     "terms": "服务条款",
-    "copyright": "© 2026 SkillHub. 保留所有权利。"
+    "copyright": "© 2026 天马AI资产中心. 保留所有权利。"
   },
   "publish": {
-    "title": "发布技能",
-    "subtitle": "上传技能包到 SkillHub",
+    "title": "发布资产",
+    "subtitle": "上传资产包到 天马AI资产中心",
+    "packageType": "资产类型",
+    "stepBasic": "第一步：基本设置",
+    "stepTags": "第二步：特征标签",
+    "stepUpload": "第三步：资产上传及扩展字段",
+    "displayName": "资产名称",
+    "displayNamePlaceholder": "如：安全代码审计技能",
+    "displayNameHint": "必填，将显示为资产标题",
+    "summary": "资产描述",
+    "summaryPlaceholder": "简要描述该资产的主要内容与用途",
+    "summaryHint": "必填，将展示在资产详情页",
+    "department": "所属职能",
+    "departmentPlaceholder": "选择所属职能",
+    "departmentHint": "可选：后端开发 / 前端开发 / UI / 产品 / 测试 / 运维",
+    "businessScope": "业务范畴",
+    "businessScopeHint": "发布后自动挂载标签，可选择业务范畴",
+    "businessScopeRequired": "请选择业务范畴",
+    "businessSubTags": "业务子标签",
+    "businessSubTagsHint": "选择业务子标签进一步细化分类",
+    "relatedProduct": "关联产品",
+    "relatedProductPlaceholder": "选择或填写关联产品（必填）",
+    "relatedProductHint": "规范与知识库需关联产品",
+    "relatedProductRequired": "请填写关联产品",
+    "specLevel": "强制级别",
+    "kbType": "知识库类型",
+    "knowledgeUrl": "知识库 URL",
+    "knowledgeUrlPlaceholder": "粘贴飞书云盘/云文档链接",
+    "knowledgeUrlHint": "与下方单文件二选一即可；填写后可在详情页打开链接",
+    "knowledgeUrlRequired": "请填写知识库 URL",
+    "knowledgeSource": "知识库链接或文件",
+    "knowledgeSourceRequired": "请填写知识库链接，或上传单个知识库文件",
+    "knowledgeFile": "知识库文件（可选）",
+    "knowledgeFileHint": "也可只上传单个文件发布，无需链接",
+    "knowledgeFileFormatHint": "支持 .md / .txt / .pdf / .docx / .zip",
+    "specFile": "规范文件",
+    "specFileHint": "直接上传规范文档即可，不必打包成 ZIP",
+    "specFileFormatHint": "支持 .md / .txt / .pdf / .docx / .zip",
+    "specFileRequired": "请上传规范文件",
+    "mcpMode": "使用方式",
+    "mcpUrl": "MCP 服务地址",
+    "mcpUrlPlaceholder": "如：http://127.0.0.1:8080/sse",
+    "mcpUrlHint": "填写 MCP 服务的 SSE 地址，详情页可展示工具列表",
+    "mcpUrlRequired": "请填写 MCP 服务地址",
+    "mcpRiskNotice": "配置前请确认来源，甄别风险",
+    "accessUrl": "访问地址（选填）",
+    "accessUrlPlaceholder": "如：https://agent.example.com",
+    "accessUrlHint": "发布后在资产详情页可访问此链接",
+    "appAccessUrl": "访问地址",
+    "appAccessUrlHint": "填写智能体服务地址即可发布；资产包可选",
+    "appPackageOptional": "资产包（选填）",
+    "appPackageOptionalHint": "已有完整 ZIP 包时可上传；仅填地址时系统会自动生成最小资产包",
+    "appSource": "访问地址或资产包",
+    "appSourceRequired": "请填写访问地址，或上传智能体资产包",
+    "templateTitle": "最少模板",
+    "copyTemplate": "一键复制",
+    "templateCopied": "模板已复制",
+    "templateCopyFailed": "复制失败，请手动选择文本",
+    "templateHint": "复制后将 --- 之间的 name 和 description 替换为你自己的内容即可",
+    "descriptorFileLabel": "资产描述文件",
+    "formatNotes": "格式说明",
+    "zipFormatTitle": "压缩包格式 ({{file}} 放在 zip 根目录)",
+    "fileRequired": "请上传资产包 ZIP 文件",
+    "missingRequired": "请先完成：{{fields}}",
     "reviewNotice": {
       "title": "发布审核说明",
-      "description": "技能包提交后需要经过管理员审核才能正式发布。"
+      "description": "资产包提交后需要经过管理员审核才能正式发布。"
     },
     "namespace": "命名空间",
     "selectNamespace": "选择命名空间",
@@ -1362,7 +1465,7 @@
       "loggedInUsersOnly": "仅登录用户可见",
       "private": "私有"
     },
-    "file": "技能包文件",
+    "file": "资产包文件",
     "removeSelectedFile": "删除已选文件",
     "publishing": "发布中...",
     "confirm": "确认发布",
@@ -1385,7 +1488,7 @@
     "warningConfirmCancel": "返回修改",
     "frontmatterFailedTitle": "SKILL.md 格式有误",
     "frontmatterFailedDescription": "请检查 SKILL.md 顶部 frontmatter 的 YAML 格式。若字段值中包含冒号，请用引号包裹。",
-    "selectRequired": "请选择命名空间和文件"
+    "selectRequired": "请填写命名空间、资产名称与描述"
   },
   "toast": {
     "success": "成功",

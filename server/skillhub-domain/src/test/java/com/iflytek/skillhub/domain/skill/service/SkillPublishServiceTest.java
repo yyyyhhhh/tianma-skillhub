@@ -103,6 +103,7 @@ class SkillPublishServiceTest {
                 CLOCK
         );
         lenient().when(securityScanService.isEnabled()).thenReturn(true);
+        lenient().when(securityScanService.isRequiredForVisiblePublish()).thenReturn(true);
         lenient().when(skillVersionRepository.findBySkillIdAndStatus(anyLong(), eq(SkillVersionStatus.PENDING_REVIEW)))
                 .thenReturn(List.of());
         lenient().when(reviewTaskRepository.save(any(ReviewTask.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -1581,6 +1582,26 @@ class SkillPublishServiceTest {
         assertEquals("error.security.scanner.required", exception.messageCode());
         verify(skillVersionRepository, never()).save(any(SkillVersion.class));
         verify(eventPublisher, never()).publishEvent(any(SkillPublishedEvent.class));
+    }
+
+    @Test
+    void testPublishFromEntries_PublicWhenScannerNotRequired_ShouldAllowWithoutScan() throws Exception {
+        String namespaceSlug = "test-ns";
+        String publisherId = "admin-user";
+        PublishFixture fixture = stubValidPublishInputs(namespaceSlug, publisherId, "dev-skill", "dev-skill", "1.0.0", false);
+        when(securityScanService.isEnabled()).thenReturn(false);
+        when(securityScanService.isRequiredForVisiblePublish()).thenReturn(false);
+
+        SkillPublishService.PublishResult result = service.publishFromEntries(
+                namespaceSlug,
+                fixture.entries(),
+                publisherId,
+                SkillVisibility.PUBLIC,
+                Set.of("SUPER_ADMIN")
+        );
+
+        assertEquals(SkillVersionStatus.PUBLISHED, result.version().getStatus());
+        verify(securityScanService, never()).triggerScan(anyLong(), anyList(), anyString());
     }
 
     @Test

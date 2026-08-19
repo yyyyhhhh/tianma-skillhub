@@ -16,6 +16,7 @@ import { toRouterPath } from '@/shared/lib/base-path'
 import { formatNamespaceSearchInput, normalizeSearchQuery, parseNamespaceSearchInput } from '@/shared/lib/search-query'
 import { Button } from '@/shared/ui/button'
 import { APP_SHELL_PAGE_CLASS_NAME } from '@/app/page-shell-style'
+import { useAssetDepartments } from '@/shared/hooks/use-dashboard-queries'
 
 const PAGE_SIZE = 12
 
@@ -90,15 +91,26 @@ export function SearchPage() {
   const navigate = useNavigate()
   const searchParams = useSearch({ from: '/search' })
   const { isAuthenticated } = useAuth()
+  const { data: departments } = useAssetDepartments()
 
   const q = normalizeSearchQuery(searchParams.q || '')
   const namespace = (searchParams.namespace || '').replace(/^@/, '')
   const selectedLabel = searchParams.label || ''
+  const department = searchParams.department || ''
   const sort = searchParams.sort || 'newest'
   const page = searchParams.page ?? 0
   const starredOnly = searchParams.starredOnly ?? false
   const [queryInput, setQueryInput] = useState(formatNamespaceSearchInput(namespace, q))
   const previousPageRef = useRef(page)
+
+  const baseSearch = {
+    q,
+    namespace,
+    label: selectedLabel,
+    department: department || undefined,
+    sort,
+    starredOnly,
+  }
 
   useEffect(() => {
     setQueryInput(formatNamespaceSearchInput(namespace, q))
@@ -122,6 +134,7 @@ export function SearchPage() {
     q,
     namespace: namespace || undefined,
     label: selectedLabel || undefined,
+    department: department || undefined,
     sort,
     page,
     size: PAGE_SIZE,
@@ -143,44 +156,59 @@ export function SearchPage() {
 
     if (!parsedInput.query && !parsedInput.namespace) {
       startTransition(() => {
-        navigate({ to: '/search', search: { q: '', namespace: '', label: selectedLabel, sort, page: 0, starredOnly }, replace: page === 0 })
+        navigate({ to: '/search', search: { ...baseSearch, q: '', namespace: '', page: 0 }, replace: page === 0 })
       })
       return
     }
 
     const timeoutId = window.setTimeout(() => {
       startTransition(() => {
-        navigate({ to: '/search', search: { q: parsedInput.query, namespace: parsedInput.namespace, label: selectedLabel, sort, page: 0, starredOnly }, replace: true })
+        navigate({
+          to: '/search',
+          search: { ...baseSearch, q: parsedInput.query, namespace: parsedInput.namespace, page: 0 },
+          replace: true,
+        })
       })
     }, 250)
 
     return () => window.clearTimeout(timeoutId)
-  }, [navigate, namespace, page, q, queryInput, selectedLabel, sort, starredOnly])
+  }, [navigate, namespace, page, q, queryInput, selectedLabel, sort, starredOnly, department])
 
   const handleSearch = (query: string) => {
     const parsedInput = parseNamespaceSearchInput(query)
     setQueryInput(query)
     startTransition(() => {
-      navigate({ to: '/search', search: { q: parsedInput.query, namespace: parsedInput.namespace, label: selectedLabel, sort, page: 0, starredOnly }, replace: true })
+      navigate({
+        to: '/search',
+        search: { ...baseSearch, q: parsedInput.query, namespace: parsedInput.namespace, page: 0 },
+        replace: true,
+      })
     })
   }
 
   const handleSortChange = (newSort: string) => {
-    navigate({ to: '/search', search: { q, namespace, label: selectedLabel, sort: newSort, page: 0, starredOnly } })
+    navigate({ to: '/search', search: { ...baseSearch, sort: newSort, page: 0 } })
   }
 
   const handlePageChange = (newPage: number) => {
     blurActiveElement()
-    navigate({ to: '/search', search: { q, namespace, label: selectedLabel, sort, page: newPage, starredOnly } })
+    navigate({ to: '/search', search: { ...baseSearch, page: newPage } })
   }
 
   const handleLabelToggle = (label: string) => {
     const nextLabel = selectedLabel === label ? '' : label
-    navigate({ to: '/search', search: { q, namespace, label: nextLabel, sort, page: 0, starredOnly } })
+    navigate({ to: '/search', search: { ...baseSearch, label: nextLabel, page: 0 } })
   }
 
   const handleNamespaceClear = () => {
-    navigate({ to: '/search', search: { q, namespace: '', label: selectedLabel, sort, page: 0, starredOnly } })
+    navigate({ to: '/search', search: { ...baseSearch, namespace: '', page: 0 } })
+  }
+
+  const handleDepartmentChange = (nextDepartment: string) => {
+    navigate({
+      to: '/search',
+      search: { ...baseSearch, department: nextDepartment || undefined, page: 0 },
+    })
   }
 
   const handleStarredToggle = () => {
@@ -194,7 +222,7 @@ export function SearchPage() {
       return
     }
 
-    navigate({ to: '/search', search: { q, namespace, label: selectedLabel, sort, page: 0, starredOnly: !starredOnly } })
+    navigate({ to: '/search', search: { ...baseSearch, page: 0, starredOnly: !starredOnly } })
   }
 
   const handleSkillClick = (namespace: string, slug: string) => {
@@ -275,6 +303,19 @@ export function SearchPage() {
             <span>{t('search.loadingMore')}</span>
           </div>
         ) : null}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="h-8 rounded-md border bg-background px-2 text-sm"
+            value={department}
+            onChange={(event) => handleDepartmentChange(event.target.value)}
+          >
+            <option value="">{t('search.filters.allDepartments')}</option>
+            {(departments ?? []).map((item) => (
+              <option key={item} value={item}>{item}</option>
+            ))}
+          </select>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="shrink-0 text-sm font-medium text-muted-foreground">{t('search.filters.label')}</span>

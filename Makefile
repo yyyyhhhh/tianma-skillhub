@@ -1,4 +1,4 @@
-.PHONY: build build-backend build-backend-app build-builtin-skills build-cli build-frontend build-web check clean cli-install db-reset dev dev-all dev-all-down dev-all-reset dev-down dev-logs dev-server dev-server-restart dev-status dev-web docs-build docs-dev docs-preview generate-api help lint-cli lint-web namespace-smoke parallel-down parallel-init parallel-sync parallel-up pr publish-cli publish-cli-major publish-cli-minor staging staging-down staging-logs test test-backend test-backend-app test-builtin-skills test-cli test-e2e-frontend test-e2e-smoke-frontend test-frontend test-redis-cluster test-web typecheck-cli typecheck-web validate-release-config web-deps web-install web-install-ci
+.PHONY: build build-backend build-backend-app build-builtin-skills build-cli build-frontend build-web check clean cli-install db-reset deploy-remote-offline deploy-remote-offline-web dev dev-all dev-all-down dev-all-reset dev-down dev-logs dev-server dev-server-restart dev-status dev-web docs-build docs-dev docs-preview generate-api help lint-cli lint-web namespace-smoke parallel-down parallel-init parallel-sync parallel-up pr publish-cli publish-cli-major publish-cli-minor staging staging-down staging-logs test test-backend test-backend-app test-builtin-skills test-cli test-e2e-frontend test-e2e-smoke-frontend test-frontend test-redis-cluster test-web typecheck-cli typecheck-web validate-release-config web-deps web-install web-install-ci
 
 DEV_DIR := .dev
 DEV_SERVER_PID := $(DEV_DIR)/server.pid
@@ -336,6 +336,12 @@ staging-down: ## 停止 staging 环境
 staging-logs: ## 查看 staging 服务日志（SERVICE=server|web，默认 server）
 	@SERVICE=$${SERVICE:-server}; \
 	$(STAGING_COMPOSE) logs -f $$SERVICE
+
+deploy-remote-offline: ## 离线部署到远程主机（默认 49.235.61.16:3000；本机构建镜像后 rsync/load）
+	bash scripts/deploy-remote-offline.sh
+
+deploy-remote-offline-web: ## 仅离线同步前端静态资源到远程主机
+	bash scripts/deploy-remote-offline.sh --web-only
 
 pr: ## 推送当前分支并创建 Pull Request（需要 gh CLI，仅限交互式终端）
 	@if ! command -v gh >/dev/null 2>&1; then \

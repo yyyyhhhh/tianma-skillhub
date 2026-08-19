@@ -3,6 +3,7 @@ package com.iflytek.skillhub.controller.admin;
 import com.iflytek.skillhub.controller.BaseApiController;
 import com.iflytek.skillhub.auth.local.PasswordResetService;
 import com.iflytek.skillhub.auth.rbac.PlatformPrincipal;
+import com.iflytek.skillhub.dto.AdminCreateUserRequest;
 import com.iflytek.skillhub.dto.AdminUserMutationResponse;
 import com.iflytek.skillhub.dto.AdminUserRoleUpdateRequest;
 import com.iflytek.skillhub.dto.AdminUserStatusUpdateRequest;
@@ -44,6 +45,22 @@ public class UserManagementController extends BaseApiController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ok("response.success.read", adminUserAppService.listUsers(search, status, page, size));
+    }
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('USER_ADMIN', 'SUPER_ADMIN')")
+    public ApiResponse<AdminUserSummaryResponse> createUser(
+            @AuthenticationPrincipal PlatformPrincipal principal,
+            @Valid @RequestBody AdminCreateUserRequest request) {
+        if (principal == null) {
+            throw new UnauthorizedException("error.auth.required");
+        }
+        return ok("response.success.created", adminUserAppService.createLocalUser(
+                request.username(),
+                request.password(),
+                request.email(),
+                request.role(),
+                principal.platformRoles()));
     }
 
     @PutMapping("/{userId}/role")

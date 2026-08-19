@@ -179,7 +179,7 @@ public class SkillPublishService {
                 errors.add("Publisher is not a member of namespace: " + namespaceSlug);
             }
         }
-        if (requiresSecurityScanner(visibility) && !securityScanService.isEnabled()) {
+        if (blocksVisiblePublishWithoutScanner(visibility)) {
             errors.add("error.security.scanner.required");
         }
 
@@ -275,7 +275,7 @@ public class SkillPublishService {
             String publisherId,
             SkillVisibility visibility,
             java.util.Set<String> platformRoles) {
-        return publishFromEntries(namespaceSlug, entries, publisherId, visibility, platformRoles, false);
+        return publishFromEntries(namespaceSlug, entries, publisherId, visibility, platformRoles, false, PublishMetadata.empty());
     }
 
     @Transactional
@@ -286,7 +286,29 @@ public class SkillPublishService {
             SkillVisibility visibility,
             java.util.Set<String> platformRoles,
             boolean confirmWarnings) {
-        return publishFromEntriesInternal(namespaceSlug, entries, publisherId, visibility, platformRoles, confirmWarnings, false, false);
+        return publishFromEntries(namespaceSlug, entries, publisherId, visibility, platformRoles, confirmWarnings, PublishMetadata.empty());
+    }
+
+    @Transactional
+    public PublishResult publishFromEntries(
+            String namespaceSlug,
+            List<PackageEntry> entries,
+            String publisherId,
+            SkillVisibility visibility,
+            java.util.Set<String> platformRoles,
+            boolean confirmWarnings,
+            PublishMetadata publishMetadata) {
+        return publishFromEntriesInternal(
+                namespaceSlug,
+                entries,
+                publisherId,
+                visibility,
+                platformRoles,
+                confirmWarnings,
+                false,
+                false,
+                publishMetadata != null ? publishMetadata.withDefaults() : PublishMetadata.empty()
+        );
     }
 
     /**
@@ -327,7 +349,18 @@ public class SkillPublishService {
                 Set.of(),
                 confirmWarnings,  // confirmWarnings: honour caller's choice for rerelease
                 false,  // forceAutoPublish=false: respect visibility rules
-                true
+                true,
+                new PublishMetadata(
+                        PackageType.SKILL,
+                        skill.getDepartment(),
+                        skill.getDisplayName(),
+                        skill.getSummary(),
+                        skill.getBusinessScope(),
+                        null,
+                        null,
+                        null,
+                        skill.getBusinessSubTags()
+                )
         );
     }
 
@@ -339,7 +372,9 @@ public class SkillPublishService {
             Set<String> platformRoles,
             boolean confirmWarnings,
             boolean forceAutoPublish,
-            boolean bypassMembershipCheck) {
+            boolean bypassMembershipCheck,
+            PublishMetadata publishMetadata) {
+        PublishMetadata meta = publishMetadata != null ? publishMetadata.withDefaults() : PublishMetadata.empty();
 
         // 1. Find namespace by slug
         Namespace namespace = namespaceRepository.findBySlug(namespaceSlug)
@@ -370,11 +405,18 @@ public class SkillPublishService {
 
         String skillMdContent = new String(skillMd.content());
         SkillMetadata metadata = skillMetadataParser.parse(skillMdContent);
-        if (metadata.version() == null || metadata.version().isBlank()) {
+        if (meta.version() != null) {
+            metadata = new SkillMetadata(metadata.name(), metadata.description(), meta.version(), metadata.body(), metadata.frontmatter());
+        } else if (metadata.version() == null || metadata.version().isBlank()) {
             String autoVersion = AUTO_VERSION_FORMATTER.format(currentTime());
             metadata = new SkillMetadata(metadata.name(), metadata.description(), autoVersion, metadata.body(), metadata.frontmatter());
         }
-        String skillSlug = SlugValidator.slugify(metadata.name());
+        String skillSlug;
+        if (meta.slug() != null) {
+            skillSlug = SlugValidator.slugify(meta.slug());
+        } else {
+            skillSlug = SlugValidator.slugify(metadata.name());
+        }
 
         // 5. Run PrePublishValidator
         PrePublishValidator.SkillPackageContext context = new PrePublishValidator.SkillPackageContext(
@@ -392,7 +434,7 @@ public class SkillPublishService {
                     "error.skill.publish.precheck.confirmRequired",
                     formatValidationMessages(publishWarnings));
         }
-        if (requiresSecurityScanner(visibility) && !securityScanService.isEnabled()) {
+        if (blocksVisiblePublishWithoutScanner(visibility)) {
             throw new DomainBadRequestException("error.security.scanner.required");
         }
 
@@ -453,6 +495,9 @@ public class SkillPublishService {
         // 8. Create SkillVersion
         SkillVersion version = new SkillVersion(skill.getId(), metadata.version(), publisherId);
         version.setRequestedVisibility(visibility);
+        if (meta.changelog() != null) {
+            version.setChangelog(meta.changelog());
+        }
         boolean autoPublish = forceAutoPublish || isSuperAdmin;
         if (autoPublish) {
             version.setStatus(SkillVersionStatus.PUBLISHED);
@@ -558,8 +603,18 @@ public class SkillPublishService {
         }
 
         // 12. Update skill metadata and move the published pointer for auto-publish flows
-        skill.setDisplayName(metadata.name());
-        skill.setSummary(metadata.description());
+        skill.setDisplayName(meta.displayName() != null ? meta.displayName() : metadata.name());
+        skill.setSummary(meta.summary() != null ? meta.summary() : metadata.description());
+        skill.setPackageType(PackageType.SKILL);
+        if (meta.department() != null) {
+            skill.setDepartment(meta.department());
+        }
+        if (meta.businessScope() != null) {
+            skill.setBusinessScope(meta.businessScope());
+        }
+        if (meta.businessSubTags() != null) {
+            skill.setBusinessSubTags(meta.businessSubTags());
+        }
         if (autoPublish || visibility == SkillVisibility.PRIVATE) {
             // Update latestVersionId for autoPublish or PRIVATE skill (UPLOADED status)
             skill.setLatestVersionId(version.getId());
@@ -609,6 +664,12 @@ public class SkillPublishService {
 
     private boolean requiresSecurityScanner(SkillVisibility visibility) {
         return visibility == SkillVisibility.PUBLIC || visibility == SkillVisibility.NAMESPACE_ONLY;
+    }
+
+    private boolean blocksVisiblePublishWithoutScanner(SkillVisibility visibility) {
+        return requiresSecurityScanner(visibility)
+                && securityScanService.isRequiredForVisiblePublish()
+                && !securityScanService.isEnabled();
     }
 
     private String resolveNamespaceSlug(Long namespaceId) {

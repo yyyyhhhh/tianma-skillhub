@@ -11,35 +11,36 @@
     --card-foreground: 220 26% 14%;
     --popover: 0 0% 100%;
     --popover-foreground: 220 26% 14%;
-    /* Indigo primary (#6A6DFF) */
-    --primary: 239 100% 71%;
+    /* Indigo primary — aligned with ACP AI 资产中心 (#6466F1 / hsl 239 84% 66%) */
+    --primary: 239 84% 66%;
     --primary-foreground: 0 0% 100%;
     /* Surface tones */
     --secondary: 210 30% 96%;
     --secondary-foreground: 220 26% 14%;
     --muted: 210 25% 95%;
     --muted-foreground: 215 14% 46%;
-    /* Violet accent (#B85EFF) */
-    --accent: 271 100% 68%;
+    /* Violet accent */
+    --accent: 263 85% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 239 100% 71%;
+    --ring: 239 84% 66%;
     --radius: 0.75rem;
 
     /* Extended palette */
     --surface-glass: 210 30% 97%;
-    --glow-primary: 239 100% 71%;
-    --glow-accent: 271 100% 68%;
+    --glow-primary: 239 84% 66%;
+    --glow-accent: 263 85% 58%;
     --success: 160 60% 45%;
     --warning: 38 92% 58%;
 
-    /* Brand */
-    --brand-start: #6A6DFF;
-    --brand-end: #B85EFF;
-    --brand-gradient: linear-gradient(135deg, #6A6DFF 0%, #B85EFF 100%);
+    /* Brand — ACP solid indigo primary with violet end stop */
+    --brand-start: #6466F1;
+    --brand-end: #7C3AED;
+    --brand-gradient: linear-gradient(135deg, #6466F1 0%, #7C3AED 100%);
+    --brand-solid: #6466F1;
 
     /* Text semantic */
     --text-secondary: 215 19% 35%;

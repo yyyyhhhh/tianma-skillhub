@@ -147,6 +147,13 @@ public class PostgresFullTextQueryService implements SearchQueryService {
             sql.append(") ");
         }
 
+        if (query.packageType() != null && !query.packageType().isBlank()) {
+            sql.append("AND s.package_type = :packageType ");
+        }
+        if (query.department() != null && !query.department().isBlank()) {
+            sql.append("AND s.department = :department ");
+        }
+
         // Full-text search
         if (hasKeyword) {
             sql.append("AND (");
@@ -203,6 +210,12 @@ public class PostgresFullTextQueryService implements SearchQueryService {
         if (query.labelSlugs() != null && !query.labelSlugs().isEmpty()) {
             nativeQuery.setParameter("labelSlugs", query.labelSlugs());
         }
+        if (query.packageType() != null && !query.packageType().isBlank()) {
+            nativeQuery.setParameter("packageType", query.packageType());
+        }
+        if (query.department() != null && !query.department().isBlank()) {
+            nativeQuery.setParameter("department", query.department());
+        }
 
         if (hasKeyword) {
             if (hasTsQuery) {
@@ -246,6 +259,12 @@ public class PostgresFullTextQueryService implements SearchQueryService {
 
         if (query.labelSlugs() != null && !query.labelSlugs().isEmpty()) {
             countQuery.setParameter("labelSlugs", query.labelSlugs());
+        }
+        if (query.packageType() != null && !query.packageType().isBlank()) {
+            countQuery.setParameter("packageType", query.packageType());
+        }
+        if (query.department() != null && !query.department().isBlank()) {
+            countQuery.setParameter("department", query.department());
         }
 
         if (hasKeyword) {

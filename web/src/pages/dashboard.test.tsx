@@ -42,6 +42,10 @@ vi.mock('@/features/token/token-list', () => ({
   TokenList: () => null,
 }))
 
+vi.mock('@/features/dashboard/ops-board', () => ({
+  OpsBoard: () => null,
+}))
+
 vi.mock('@/shared/ui/card', () => ({
   Card: ({ children }: { children: unknown }) => children,
   CardContent: ({ children }: { children: unknown }) => children,

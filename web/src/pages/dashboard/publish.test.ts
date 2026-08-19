@@ -16,6 +16,7 @@ vi.mock('react-i18next', async () => {
     ...actual,
     useTranslation: () => ({
       t: (key: string) => key,
+      i18n: { language: 'zh', resolvedLanguage: 'zh' },
     }),
   }
 })
@@ -56,8 +57,25 @@ vi.mock('@/shared/hooks/use-namespace-queries', () => ({
   useMyNamespaces: () => ({ data: [], isLoading: false }),
 }))
 
+vi.mock('@/shared/hooks/use-dashboard-queries', () => ({
+  useAssetDepartments: () => ({ data: ['后端开发'] }),
+  useBusinessScopes: () => ({ data: ['智谋', '智码'] }),
+}))
+
 vi.mock('@/shared/components/dashboard-page-header', () => ({
   DashboardPageHeader: () => null,
+}))
+
+vi.mock('@/shared/components/confirm-dialog', () => ({
+  ConfirmDialog: () => null,
+}))
+
+vi.mock('@/shared/ui/input', () => ({
+  Input: () => null,
+}))
+
+vi.mock('@/shared/ui/textarea', () => ({
+  Textarea: () => null,
 }))
 
 vi.mock('@/shared/lib/toast', () => ({

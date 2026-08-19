@@ -47,6 +47,11 @@ public interface SkillJpaRepository extends JpaRepository<Skill, Long>, SkillRep
 
     @Modifying
     @Transactional
+    @Query("UPDATE Skill s SET s.viewCount = s.viewCount + 1 WHERE s.id = :skillId")
+    void incrementViewCount(@Param("skillId") Long skillId);
+
+    @Modifying
+    @Transactional
     @Query("UPDATE Skill s SET s.subscriptionCount = s.subscriptionCount + 1 WHERE s.id = :skillId")
     void incrementSubscriptionCount(@Param("skillId") Long skillId);
 

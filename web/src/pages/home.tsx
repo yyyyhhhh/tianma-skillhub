@@ -6,6 +6,7 @@ import { SkeletonList } from '@/shared/components/skeleton-loader'
 import { QuickStartSection } from '@/shared/components/quick-start'
 import { useSearchSkills } from '@/shared/hooks/use-skill-queries'
 import { normalizeSearchQuery } from '@/shared/lib/search-query'
+import { BRAND_NAME } from '@/shared/lib/brand'
 import { Button } from '@/shared/ui/button'
 
 export function HomePage() {
@@ -35,8 +36,8 @@ export function HomePage() {
       {/* Hero Section */}
       <div className="text-center space-y-8 py-16 animate-fade-up">
         <div className="space-y-4">
-          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold text-brand-gradient leading-tight">
-            SkillHub
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-brand-gradient leading-tight">
+            {BRAND_NAME}
           </h1>
           <p className="text-xl md:text-2xl max-w-2xl mx-auto" style={{ color: 'hsl(var(--text-secondary))' }}>
             {t('home.subtitle')}
