@@ -146,7 +146,17 @@ public class SkillLabelAppService {
                 .distinct()
                 .toList();
         Map<Long, LabelDefinition> definitionsById = labelDefinitionService.listByIds(labelIds).stream()
-                .collect(Collectors.toMap(LabelDefinition::getId, Function.identity()));
+                .collect(Collectors.toMap(LabelDefinition::getId, Function.identity(), (left, right) -> left, java.util.LinkedHashMap::new));
+        List<Long> missingParentIds = definitionsById.values().stream()
+                .map(LabelDefinition::getParentId)
+                .filter(parentId -> parentId != null && !definitionsById.containsKey(parentId))
+                .distinct()
+                .toList();
+        if (!missingParentIds.isEmpty()) {
+            for (LabelDefinition parent : labelDefinitionService.listByIds(missingParentIds)) {
+                definitionsById.put(parent.getId(), parent);
+            }
+        }
         Map<Long, List<LabelTranslation>> translationsByLabelId = labelDefinitionService.listTranslationsByLabelIds(labelIds);
         return skillLabels.stream()
                 .filter(skillLabel -> definitionsById.containsKey(skillLabel.getLabelId()))
@@ -157,11 +167,20 @@ public class SkillLabelAppService {
                             definition.getType().name(),
                             labelLocalizationService.resolveDisplayName(
                                     definition.getSlug(),
-                                    translationsByLabelId.getOrDefault(definition.getId(), List.of()))
+                                    translationsByLabelId.getOrDefault(definition.getId(), List.of())),
+                            parentSlugOf(definition, definitionsById)
                     );
                 })
                 .sorted(java.util.Comparator.comparing(SkillLabelDto::type).thenComparing(SkillLabelDto::slug))
                 .toList();
+    }
+
+    private String parentSlugOf(LabelDefinition definition, Map<Long, LabelDefinition> definitionsById) {
+        if (definition.getParentId() == null) {
+            return null;
+        }
+        LabelDefinition parent = definitionsById.get(definition.getParentId());
+        return parent == null ? null : parent.getSlug();
     }
 
     private Skill resolveSkill(String namespaceSlug, String skillSlug, String userId) {

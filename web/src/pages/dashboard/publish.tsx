@@ -25,17 +25,16 @@ import { Label } from '@/shared/ui/label'
 import { Card } from '@/shared/ui/card'
 import { usePublishSkill } from '@/shared/hooks/use-skill-queries'
 import { useMyNamespaces } from '@/shared/hooks/use-namespace-queries'
-import {
-  useAssetDepartments,
-  useBusinessScopes,
-} from '@/shared/hooks/use-dashboard-queries'
+import { useAssetDepartments } from '@/shared/hooks/use-dashboard-queries'
+import { useVisibleLabels } from '@/shared/hooks/use-label-queries'
 import { ConfirmDialog } from '@/shared/components/confirm-dialog'
 import { DashboardPageHeader } from '@/shared/components/dashboard-page-header'
 import { navigateAfterOverlays } from '@/shared/lib/navigate-after-overlays'
 import {
-  BUSINESS_SCOPES,
-  getBusinessSubTags,
+  findScopeForLabelSlug,
   getScopeTone,
+  listManagedScopeLabels,
+  listManagedSubTagLabels,
 } from '@/shared/lib/business-scope'
 import { toast } from '@/shared/lib/toast'
 import { ApiError } from '@/api/client'
@@ -43,6 +42,7 @@ import { Input } from '@/shared/ui/input'
 import { Textarea } from '@/shared/ui/textarea'
 
 const EMPTY_NAMESPACE_VALUE = '__select_namespace__'
+const EMPTY_LABELS: Array<{ slug: string; type: string; displayName: string }> = []
 
 export function PublishPage() {
   const { t, i18n } = useTranslation()
@@ -62,16 +62,24 @@ export function PublishPage() {
 
   const { data: namespaces, isLoading: isLoadingNamespaces } = useMyNamespaces()
   const { data: departments } = useAssetDepartments()
-  const { data: businessScopes } = useBusinessScopes()
+  const { data: visibleLabels } = useVisibleLabels()
+  const managedLabels = visibleLabels ?? EMPTY_LABELS
   const publishMutation = usePublishSkill()
   const locale = i18n.resolvedLanguage ?? i18n.language
   const isZh = locale.startsWith('zh')
   const guide = PUBLISH_TYPE_GUIDES.SKILL
-  const scopeOptions = businessScopes?.length ? businessScopes : [...BUSINESS_SCOPES]
+  const scopeOptions = useMemo(() => listManagedScopeLabels(managedLabels), [managedLabels])
+  const availableSubTags = useMemo(
+    () => listManagedSubTagLabels(managedLabels, businessScope || undefined),
+    [managedLabels, businessScope],
+  )
+  const selectedScope = scopeOptions.find((label) => label.slug === businessScope)
   const selectedNamespace = namespaces?.find((ns) => ns.slug === namespaceSlug)
   const namespaceOnlyLabel = selectedNamespace?.type === 'GLOBAL'
     ? t('publish.visibilityOptions.loggedInUsersOnly')
     : t('publish.visibilityOptions.namespaceOnly')
+  const scopeSlugKey = scopeOptions.map((label) => label.slug).join(',')
+  const allowedSubTagKey = availableSubTags.map((label) => label.slug).join(',')
 
   useEffect(() => {
     setNamespaceSlug(prefill.namespace)
@@ -119,11 +127,28 @@ export function PublishPage() {
   ])
 
   useEffect(() => {
-    if (!businessScope && scopeOptions.length > 0) {
-      const preferred = scopeOptions.includes('其他') ? '其他' : scopeOptions[0]
-      setBusinessScope(preferred)
+    if (!scopeSlugKey) {
+      if (businessScope) {
+        setBusinessScope('')
+      }
+      return
     }
-  }, [businessScope, scopeOptions])
+    const slugs = scopeSlugKey.split(',')
+    if (!slugs.includes(businessScope)) {
+      const preferred = slugs.includes('scope-other') ? 'scope-other' : slugs[0]
+      if (preferred) {
+        setBusinessScope(preferred)
+      }
+    }
+  }, [businessScope, scopeSlugKey])
+
+  useEffect(() => {
+    const allowed = new Set(allowedSubTagKey ? allowedSubTagKey.split(',') : [])
+    setBusinessSubTags((current) => {
+      const next = current.filter((slug) => allowed.has(slug))
+      return next.length === current.length ? current : next
+    })
+  }, [allowedSubTagKey])
 
   useEffect(() => {
     if (namespaceSlug || !namespaces?.length) {
@@ -158,7 +183,7 @@ export function PublishPage() {
         department: department.trim() || undefined,
         displayName: displayName.trim(),
         summary: summary.trim(),
-        businessScope: businessScope || undefined,
+        businessScope: selectedScope?.displayName || businessScope || undefined,
         businessSubTags: businessSubTags.length > 0 ? businessSubTags : undefined,
       })
       setPrecheckWarnings([])
@@ -224,17 +249,16 @@ export function PublishPage() {
 
   const canSubmit = !publishMutation.isPending && !validateForm()
 
-  const availableSubTags = getBusinessSubTags(businessScope)
-  const activeScopeTone = getScopeTone(businessScope)
+  const activeScopeTone = getScopeTone(findScopeForLabelSlug(businessScope) ?? selectedScope?.displayName ?? '')
 
-  const handleBusinessScopeChange = (scope: string) => {
-    setBusinessScope(scope)
+  const handleBusinessScopeChange = (scopeSlug: string) => {
+    setBusinessScope(scopeSlug)
     setBusinessSubTags([])
   }
 
-  const toggleBusinessSubTag = (tag: string) => {
+  const toggleBusinessSubTag = (tagSlug: string) => {
     setBusinessSubTags((prev) =>
-      prev.includes(tag) ? prev.filter((item) => item !== tag) : [...prev, tag],
+      prev.includes(tagSlug) ? prev.filter((item) => item !== tagSlug) : [...prev, tagSlug],
     )
   }
 
@@ -355,18 +379,18 @@ export function PublishPage() {
             <Label className="text-sm font-semibold">{t('publish.businessScope')}</Label>
             <div className="flex flex-wrap gap-2">
               {scopeOptions.map((scope) => {
-                const active = businessScope === scope
-                const tone = getScopeTone(scope)
+                const active = businessScope === scope.slug
+                const tone = getScopeTone(findScopeForLabelSlug(scope.slug) ?? scope.displayName)
                 return (
                   <button
-                    key={scope}
+                    key={scope.slug}
                     type="button"
-                    onClick={() => handleBusinessScopeChange(scope)}
+                    onClick={() => handleBusinessScopeChange(scope.slug)}
                     className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
                       active ? tone.solid : `${tone.outline} hover:opacity-90`
                     }`}
                   >
-                    {scope}
+                    {scope.displayName}
                   </button>
                 )
               })}
@@ -379,17 +403,17 @@ export function PublishPage() {
               <Label className="text-sm font-semibold">{t('publish.businessSubTags')}</Label>
               <div className="flex flex-wrap gap-2">
                 {availableSubTags.map((tag) => {
-                  const active = businessSubTags.includes(tag)
+                  const active = businessSubTags.includes(tag.slug)
                   return (
                     <button
-                      key={tag}
+                      key={tag.slug}
                       type="button"
-                      onClick={() => toggleBusinessSubTag(tag)}
+                      onClick={() => toggleBusinessSubTag(tag.slug)}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-all cursor-pointer ${
                         active ? activeScopeTone.subtagActive : activeScopeTone.subtag
                       }`}
                     >
-                      {tag}
+                      {tag.displayName}
                     </button>
                   )
                 })}

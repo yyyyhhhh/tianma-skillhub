@@ -21,7 +21,16 @@ public final class BusinessLabelCatalog {
         if (displayName == null || displayName.isBlank()) {
             return null;
         }
-        return DISPLAY_NAME_TO_SLUG.get(displayName.trim());
+        String trimmed = displayName.trim();
+        String mapped = DISPLAY_NAME_TO_SLUG.get(trimmed);
+        if (mapped != null) {
+            return mapped;
+        }
+        try {
+            return LabelSlugValidator.normalize(trimmed);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     public static List<String> resolveSlugs(String businessScope, String businessSubTagsCsv) {

@@ -36,6 +36,7 @@ type LabelFormState = AdminLabelInput
 
 const EMPTY_TRANSLATION: LabelTranslation = { locale: '', displayName: '' }
 const LABEL_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/
+const EMPTY_PARENT_VALUE = '__none_parent__'
 
 function toFormState(definition?: LabelDefinition): LabelFormState {
   if (!definition) {
@@ -44,6 +45,7 @@ function toFormState(definition?: LabelDefinition): LabelFormState {
       type: 'RECOMMENDED',
       visibleInFilter: true,
       sortOrder: 0,
+      parentSlug: '',
       translations: [{ ...EMPTY_TRANSLATION }],
     }
   }
@@ -53,6 +55,7 @@ function toFormState(definition?: LabelDefinition): LabelFormState {
     type: definition.type === 'PRIVILEGED' ? 'PRIVILEGED' : 'RECOMMENDED',
     visibleInFilter: definition.visibleInFilter,
     sortOrder: definition.sortOrder,
+    parentSlug: definition.parentSlug ?? '',
     translations: definition.translations.length > 0 ? definition.translations : [{ ...EMPTY_TRANSLATION }],
   }
 }
@@ -62,6 +65,7 @@ export function normalizeLabelFormState(form: LabelFormState): LabelFormState {
     ...form,
     slug: form.slug.trim().toLowerCase(),
     sortOrder: Number.isFinite(form.sortOrder) ? form.sortOrder : 0,
+    parentSlug: form.type === 'PRIVILEGED' ? '' : (form.parentSlug ?? '').trim().toLowerCase(),
     translations: form.translations
       .map((translation) => ({
         locale: translation.locale.trim().replace(/_/g, '-').toLowerCase(),
@@ -196,6 +200,7 @@ export function AdminLabelsPage() {
             type: normalized.type,
             visibleInFilter: normalized.visibleInFilter,
             sortOrder: normalized.sortOrder,
+            parentSlug: normalized.parentSlug || null,
             translations: normalized.translations,
           },
         })
@@ -215,6 +220,10 @@ export function AdminLabelsPage() {
 
   const handleDelete = async () => {
     if (!pendingDelete) {
+      return
+    }
+    if (sortedDefinitions.some((definition) => definition.parentSlug === pendingDelete.slug)) {
+      toast.error(t('adminLabels.deleteErrorTitle'), t('adminLabels.deleteBlockedHasChildren'))
       return
     }
     try {
@@ -288,6 +297,7 @@ export function AdminLabelsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('adminLabels.colLabel')}</TableHead>
+                <TableHead>{t('adminLabels.colParent')}</TableHead>
                 <TableHead>{t('adminLabels.colType')}</TableHead>
                 <TableHead>{t('adminLabels.colVisibility')}</TableHead>
                 <TableHead>{t('adminLabels.colSortOrder')}</TableHead>
@@ -304,6 +314,12 @@ export function AdminLabelsPage() {
                     <div className="text-xs text-muted-foreground">
                       {definition.translations[0]?.displayName ?? definition.slug}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {definition.parentSlug
+                      ? (sortedDefinitions.find((item) => item.slug === definition.parentSlug)?.translations[0]?.displayName
+                        ?? definition.parentSlug)
+                      : t('adminLabels.parentNone')}
                   </TableCell>
                   <TableCell>{definition.type}</TableCell>
                   <TableCell>
@@ -333,6 +349,7 @@ export function AdminLabelsPage() {
                         type="button"
                         size="sm"
                         variant="outline"
+                        disabled={sortedDefinitions.some((item) => item.parentSlug === definition.slug)}
                         onClick={() => {
                           setPendingDelete(definition)
                           setDeleteDialogOpen(true)
@@ -372,7 +389,11 @@ export function AdminLabelsPage() {
               <Label htmlFor="label-type">{t('adminLabels.formType')}</Label>
               <Select
                 value={form.type}
-                onValueChange={(value) => setForm((current) => ({ ...current, type: value as LabelFormState['type'] }))}
+                onValueChange={(value) => setForm((current) => ({
+                  ...current,
+                  type: value as LabelFormState['type'],
+                  parentSlug: value === 'PRIVILEGED' ? '' : current.parentSlug,
+                }))}
               >
                 <SelectTrigger id="label-type">
                   <SelectValue />
@@ -382,6 +403,45 @@ export function AdminLabelsPage() {
                   <SelectItem value="PRIVILEGED">{t('adminLabels.typePrivileged')}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="label-parent">{t('adminLabels.formParent')}</Label>
+              <Select
+                value={form.parentSlug || EMPTY_PARENT_VALUE}
+                disabled={
+                  form.type === 'PRIVILEGED'
+                  || Boolean(editingSlug && sortedDefinitions.some((definition) => definition.parentSlug === editingSlug))
+                }
+                onValueChange={(value) => setForm((current) => ({
+                  ...current,
+                  parentSlug: value === EMPTY_PARENT_VALUE ? '' : value,
+                }))}
+              >
+                <SelectTrigger id="label-parent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={EMPTY_PARENT_VALUE}>{t('adminLabels.parentNone')}</SelectItem>
+                  {sortedDefinitions
+                    .filter((definition) =>
+                      definition.type === 'RECOMMENDED'
+                      && !definition.parentSlug
+                      && definition.slug !== editingSlug
+                    )
+                    .map((definition) => (
+                      <SelectItem key={definition.slug} value={definition.slug}>
+                        {definition.translations[0]?.displayName ?? definition.slug}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {form.type === 'PRIVILEGED'
+                  ? t('adminLabels.formParentPrivilegedHint')
+                  : editingSlug && sortedDefinitions.some((definition) => definition.parentSlug === editingSlug)
+                    ? t('adminLabels.formParentHasChildrenHint')
+                    : t('adminLabels.formParentHint')}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="label-visibility">{t('adminLabels.formVisibility')}</Label>

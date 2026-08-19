@@ -35,8 +35,15 @@ public class LabelDefinitionService {
         return labelDefinitionRepository.findAllByOrderBySortOrderAscIdAsc();
     }
 
+    /**
+     * Labels selectable in publish / search pickers.
+     * Includes every RECOMMENDED definition (even if hidden from the old single-row filter)
+     * plus PRIVILEGED labels that are still marked visible.
+     */
     public List<LabelDefinition> listVisibleFilters() {
-        return labelDefinitionRepository.findByVisibleInFilterTrueOrderBySortOrderAscIdAsc();
+        return labelDefinitionRepository.findAllByOrderBySortOrderAscIdAsc().stream()
+                .filter(definition -> definition.getType() == LabelType.RECOMMENDED || definition.isVisibleInFilter())
+                .toList();
     }
 
     public List<LabelDefinition> listByIds(List<Long> labelIds) {
@@ -57,6 +64,7 @@ public class LabelDefinitionService {
                                   LabelType type,
                                   boolean visibleInFilter,
                                   int sortOrder,
+                                  String parentSlug,
                                   List<LabelTranslation> translations,
                                   String operatorId,
                                   Set<String> platformRoles) {
@@ -70,11 +78,13 @@ public class LabelDefinitionService {
             throw new DomainBadRequestException("label.slug.duplicate", normalizedSlug);
         }
         try {
-            LabelDefinition labelDefinition = labelDefinitionRepository.save(
-                    new LabelDefinition(normalizedSlug, type, visibleInFilter, sortOrder, operatorId)
+            LabelDefinition labelDefinition = new LabelDefinition(
+                    normalizedSlug, type, visibleInFilter, sortOrder, operatorId
             );
-            replaceTranslations(labelDefinition.getId(), normalizedTranslations);
-            return labelDefinition;
+            labelDefinition.setParentId(resolveParentId(parentSlug, type, null));
+            LabelDefinition saved = labelDefinitionRepository.save(labelDefinition);
+            replaceTranslations(saved.getId(), normalizedTranslations);
+            return saved;
         } catch (DataIntegrityViolationException ex) {
             throw mapConstraintViolation(normalizedSlug, ex);
         }
@@ -85,14 +95,20 @@ public class LabelDefinitionService {
                                   LabelType type,
                                   boolean visibleInFilter,
                                   int sortOrder,
+                                  String parentSlug,
                                   List<LabelTranslation> translations,
                                   Set<String> platformRoles) {
         requireDefinitionAdmin(platformRoles);
         LabelDefinition existing = getBySlug(slug);
         List<LabelTranslation> normalizedTranslations = normalizeTranslations(translations);
+        Long parentId = resolveParentId(parentSlug, type, existing.getId());
+        if (parentId != null && labelDefinitionRepository.existsByParentId(existing.getId())) {
+            throw new DomainBadRequestException("label.parent.has_children");
+        }
         existing.setType(type);
         existing.setVisibleInFilter(visibleInFilter);
         existing.setSortOrder(sortOrder);
+        existing.setParentId(parentId);
         try {
             LabelDefinition saved = labelDefinitionRepository.save(existing);
             replaceTranslations(saved.getId(), normalizedTranslations);
@@ -105,7 +121,11 @@ public class LabelDefinitionService {
     @Transactional
     public void delete(String slug, Set<String> platformRoles) {
         requireDefinitionAdmin(platformRoles);
-        labelDefinitionRepository.delete(getBySlug(slug));
+        LabelDefinition existing = getBySlug(slug);
+        if (labelDefinitionRepository.existsByParentId(existing.getId())) {
+            throw new DomainBadRequestException("label.parent.has_children");
+        }
+        labelDefinitionRepository.delete(existing);
     }
 
     @Transactional
@@ -139,6 +159,26 @@ public class LabelDefinitionService {
         }
         return labelTranslationRepository.findByLabelIdIn(labelIds).stream()
                 .collect(java.util.stream.Collectors.groupingBy(LabelTranslation::getLabelId));
+    }
+
+    private Long resolveParentId(String parentSlug, LabelType type, Long selfId) {
+        if (parentSlug == null || parentSlug.isBlank()) {
+            return null;
+        }
+        if (type == LabelType.PRIVILEGED) {
+            throw new DomainBadRequestException("label.parent.privileged_child");
+        }
+        LabelDefinition parent = getBySlug(parentSlug);
+        if (selfId != null && selfId.equals(parent.getId())) {
+            throw new DomainBadRequestException("label.parent.self");
+        }
+        if (parent.getType() != LabelType.RECOMMENDED) {
+            throw new DomainBadRequestException("label.parent.invalid_type");
+        }
+        if (parent.getParentId() != null) {
+            throw new DomainBadRequestException("label.parent.not_root");
+        }
+        return parent.getId();
     }
 
     private void replaceTranslations(Long labelId, List<LabelTranslation> translations) {
@@ -202,6 +242,9 @@ public class LabelDefinitionService {
         String message = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
         if (message != null && message.contains("label_translation")) {
             return new DomainBadRequestException("label.translation.locale.conflict");
+        }
+        if (message != null && (message.contains("parent_id") || message.contains("label_definition_parent"))) {
+            return new DomainBadRequestException("label.parent.has_children");
         }
         return new DomainBadRequestException("label.slug.duplicate", slug);
     }

@@ -7,7 +7,7 @@ import { NamespaceBadge } from '@/shared/components/namespace-badge'
 import { getHeadlineVersion } from '@/shared/lib/skill-lifecycle'
 import { formatCompactCount } from '@/shared/lib/number-format'
 import { getSkillLabelSearch } from '@/shared/lib/skill-navigation'
-import { isBusinessScopeSlug } from '@/shared/lib/business-scope'
+import { isRootManagedLabel } from '@/shared/lib/business-scope'
 import { cn } from '@/shared/lib/utils'
 import { Bookmark } from 'lucide-react'
 
@@ -15,8 +15,8 @@ const CARD_LABEL_LIMIT = 4
 
 function cardLabels(labels: LabelItem[]) {
   const ordered = [...labels].sort((left, right) => {
-    const leftRank = isBusinessScopeSlug(left.slug) ? 0 : 1
-    const rightRank = isBusinessScopeSlug(right.slug) ? 0 : 1
+    const leftRank = isRootManagedLabel(left) ? 0 : 1
+    const rightRank = isRootManagedLabel(right) ? 0 : 1
     return leftRank - rightRank
   })
   return {
@@ -95,14 +95,14 @@ export function SkillCard({ skill, onClick, highlightStarred = true }: SkillCard
                 onClick={(event) => event.stopPropagation()}
                 className={cn(
                   'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2',
-                  isBusinessScopeSlug(label.slug)
+                  isRootManagedLabel(label)
                     ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
                     : label.type === 'PRIVILEGED'
                       ? 'border-amber-500/40 bg-amber-100 text-amber-900 hover:bg-amber-200/80'
                       : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100',
                 )}
               >
-                {isBusinessScopeSlug(label.slug) ? label.displayName : `#${label.displayName}`}
+                {isRootManagedLabel(label) ? label.displayName : `#${label.displayName}`}
               </Link>
             ))}
             {extraLabelCount > 0 && (

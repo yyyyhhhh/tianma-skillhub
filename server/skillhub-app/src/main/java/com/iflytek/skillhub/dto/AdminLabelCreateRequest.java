@@ -13,5 +13,6 @@ public record AdminLabelCreateRequest(
         @NotNull LabelType type,
         boolean visibleInFilter,
         int sortOrder,
+        @Size(max = 64) String parentSlug,
         @Valid @NotEmpty List<LabelTranslationItemRequest> translations
 ) {}

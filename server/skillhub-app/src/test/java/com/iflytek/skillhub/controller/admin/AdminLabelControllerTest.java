@@ -94,6 +94,40 @@ class AdminLabelControllerTest {
     }
 
     @Test
+    void createLabel_acceptsParentSlug() throws Exception {
+        when(labelAdminAppService.create(any(AdminLabelCreateRequest.class), eq("admin"), any()))
+                .thenReturn(new LabelDefinitionResponse(
+                        "req-analysis",
+                        "RECOMMENDED",
+                        false,
+                        1,
+                        List.of(new com.iflytek.skillhub.dto.LabelTranslationResponse("zh", "需求分析")),
+                        Instant.parse("2026-03-20T00:00:00Z"),
+                        "scope-zhimou"
+                ));
+
+        mockMvc.perform(post("/api/v1/admin/labels")
+                        .with(authentication(superAdminAuth()))
+                        .with(csrf())
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "slug":"req-analysis",
+                                  "type":"RECOMMENDED",
+                                  "visibleInFilter":false,
+                                  "sortOrder":1,
+                                  "parentSlug":"scope-zhimou",
+                                  "translations":[
+                                    {"locale":"zh","displayName":"需求分析"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.slug").value("req-analysis"))
+                .andExpect(jsonPath("$.data.parentSlug").value("scope-zhimou"));
+    }
+
+    @Test
     void updateSortOrder_returnsUpdatedDefinitions() throws Exception {
         when(labelAdminAppService.updateSortOrder(any(LabelSortOrderUpdateRequest.class), eq("admin"), any()))
                 .thenReturn(List.of(labelResponse("official", "RECOMMENDED", true, 0)));
@@ -156,7 +190,8 @@ class AdminLabelControllerTest {
                 visibleInFilter,
                 sortOrder,
                 List.of(new com.iflytek.skillhub.dto.LabelTranslationResponse("en", "Official")),
-                Instant.parse("2026-03-20T00:00:00Z")
+                Instant.parse("2026-03-20T00:00:00Z"),
+                null
         );
     }
 

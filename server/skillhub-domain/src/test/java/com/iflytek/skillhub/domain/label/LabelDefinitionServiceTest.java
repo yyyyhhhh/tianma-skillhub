@@ -49,6 +49,7 @@ class LabelDefinitionServiceTest {
                 LabelType.RECOMMENDED,
                 true,
                 0,
+                null,
                 List.of(
                         new LabelTranslation(null, "en", "Official"),
                         new LabelTranslation(null, "EN", "Official EN")
@@ -70,6 +71,7 @@ class LabelDefinitionServiceTest {
                 LabelType.RECOMMENDED,
                 true,
                 0,
+                null,
                 List.of(new LabelTranslation(null, "en", "Official")),
                 "admin",
                 Set.of("SUPER_ADMIN")
@@ -122,6 +124,7 @@ class LabelDefinitionServiceTest {
                 LabelType.RECOMMENDED,
                 true,
                 1,
+                null,
                 List.of(new LabelTranslation(null, "en", "Official Updated")),
                 Set.of("SUPER_ADMIN")
         );
@@ -133,17 +136,129 @@ class LabelDefinitionServiceTest {
     }
 
     @Test
-    void listVisibleFiltersShouldIncludePrivilegedLabelsWhenVisible() {
-        List<LabelDefinition> expected = List.of(
-                new LabelDefinition("official", LabelType.RECOMMENDED, true, 0, "admin"),
-                new LabelDefinition("verified", LabelType.PRIVILEGED, true, 1, "admin")
-        );
-        when(labelDefinitionRepository.findByVisibleInFilterTrueOrderBySortOrderAscIdAsc()).thenReturn(expected);
+    void listVisibleFiltersShouldIncludeRecommendedAndVisiblePrivilegedLabels() {
+        LabelDefinition recommendedHidden = new LabelDefinition("api-test", LabelType.RECOMMENDED, false, 0, "admin");
+        LabelDefinition privilegedVisible = new LabelDefinition("verified", LabelType.PRIVILEGED, true, 1, "admin");
+        LabelDefinition privilegedHidden = new LabelDefinition("internal", LabelType.PRIVILEGED, false, 2, "admin");
+        when(labelDefinitionRepository.findAllByOrderBySortOrderAscIdAsc())
+                .thenReturn(List.of(recommendedHidden, privilegedVisible, privilegedHidden));
 
         List<LabelDefinition> actual = service.listVisibleFilters();
 
-        assertEquals(expected, actual);
-        verify(labelDefinitionRepository).findByVisibleInFilterTrueOrderBySortOrderAscIdAsc();
+        assertEquals(List.of(recommendedHidden, privilegedVisible), actual);
+        verify(labelDefinitionRepository).findAllByOrderBySortOrderAscIdAsc();
+    }
+
+    @Test
+    void createShouldAttachParentWhenParentIsARootRecommendedLabel() {
+        when(labelPermissionChecker.canManageDefinitions(Set.of("SUPER_ADMIN"))).thenReturn(true);
+        when(labelDefinitionRepository.count()).thenReturn(0L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("req-analysis")).thenReturn(Optional.empty());
+        LabelDefinition parent = new LabelDefinition("scope-zhimou", LabelType.RECOMMENDED, true, 0, "admin");
+        setField(parent, "id", 1L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("scope-zhimou")).thenReturn(Optional.of(parent));
+        when(labelDefinitionRepository.save(org.mockito.ArgumentMatchers.any(LabelDefinition.class)))
+                .thenAnswer(invocation -> {
+                    LabelDefinition saved = invocation.getArgument(0);
+                    setField(saved, "id", 2L);
+                    return saved;
+                });
+
+        LabelDefinition created = service.create(
+                "req-analysis",
+                LabelType.RECOMMENDED,
+                false,
+                1,
+                "scope-zhimou",
+                List.of(new LabelTranslation(null, "zh", "需求分析")),
+                "admin",
+                Set.of("SUPER_ADMIN")
+        );
+
+        assertEquals(1L, created.getParentId());
+        assertEquals(2L, created.getId());
+    }
+
+    @Test
+    void createShouldRejectParentThatIsItselfAChild() {
+        when(labelPermissionChecker.canManageDefinitions(Set.of("SUPER_ADMIN"))).thenReturn(true);
+        when(labelDefinitionRepository.count()).thenReturn(0L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("nested")).thenReturn(Optional.empty());
+        LabelDefinition parent = new LabelDefinition("req-analysis", LabelType.RECOMMENDED, false, 0, "admin");
+        setField(parent, "id", 2L);
+        parent.setParentId(1L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("req-analysis")).thenReturn(Optional.of(parent));
+
+        DomainBadRequestException ex = assertThrows(DomainBadRequestException.class, () -> service.create(
+                "nested",
+                LabelType.RECOMMENDED,
+                false,
+                1,
+                "req-analysis",
+                List.of(new LabelTranslation(null, "zh", "嵌套")),
+                "admin",
+                Set.of("SUPER_ADMIN")
+        ));
+
+        assertEquals("label.parent.not_root", ex.messageCode());
+    }
+
+    @Test
+    void createShouldRejectPrivilegedChildWithParent() {
+        when(labelPermissionChecker.canManageDefinitions(Set.of("SUPER_ADMIN"))).thenReturn(true);
+        when(labelDefinitionRepository.count()).thenReturn(0L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("official")).thenReturn(Optional.empty());
+
+        DomainBadRequestException ex = assertThrows(DomainBadRequestException.class, () -> service.create(
+                "official",
+                LabelType.PRIVILEGED,
+                true,
+                0,
+                "scope-zhimou",
+                List.of(new LabelTranslation(null, "en", "Official")),
+                "admin",
+                Set.of("SUPER_ADMIN")
+        ));
+
+        assertEquals("label.parent.privileged_child", ex.messageCode());
+    }
+
+    @Test
+    void updateShouldRejectAssigningParentToALabelThatAlreadyHasChildren() {
+        when(labelPermissionChecker.canManageDefinitions(Set.of("SUPER_ADMIN"))).thenReturn(true);
+        LabelDefinition existing = new LabelDefinition("scope-zhimou", LabelType.RECOMMENDED, true, 0, "admin");
+        setField(existing, "id", 1L);
+        LabelDefinition newParent = new LabelDefinition("scope-other", LabelType.RECOMMENDED, true, 1, "admin");
+        setField(newParent, "id", 9L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("scope-zhimou")).thenReturn(Optional.of(existing));
+        when(labelDefinitionRepository.findBySlugIgnoreCase("scope-other")).thenReturn(Optional.of(newParent));
+        when(labelDefinitionRepository.existsByParentId(1L)).thenReturn(true);
+
+        DomainBadRequestException ex = assertThrows(DomainBadRequestException.class, () -> service.update(
+                "scope-zhimou",
+                LabelType.RECOMMENDED,
+                true,
+                0,
+                "scope-other",
+                List.of(new LabelTranslation(null, "zh", "智谋")),
+                Set.of("SUPER_ADMIN")
+        ));
+
+        assertEquals("label.parent.has_children", ex.messageCode());
+    }
+
+    @Test
+    void deleteShouldRejectWhenLabelStillHasChildren() {
+        when(labelPermissionChecker.canManageDefinitions(Set.of("SUPER_ADMIN"))).thenReturn(true);
+        LabelDefinition existing = new LabelDefinition("scope-zhimou", LabelType.RECOMMENDED, true, 0, "admin");
+        setField(existing, "id", 1L);
+        when(labelDefinitionRepository.findBySlugIgnoreCase("scope-zhimou")).thenReturn(Optional.of(existing));
+        when(labelDefinitionRepository.existsByParentId(1L)).thenReturn(true);
+
+        DomainBadRequestException ex = assertThrows(DomainBadRequestException.class, () ->
+                service.delete("scope-zhimou", Set.of("SUPER_ADMIN")));
+
+        assertEquals("label.parent.has_children", ex.messageCode());
     }
 
     private void setField(Object target, String fieldName, Object value) {

@@ -199,6 +199,7 @@ export type LabelDefinition = Omit<
   visibleInFilter: boolean
   sortOrder: number
   translations: LabelTranslation[]
+  parentSlug?: string | null
 }
 
 export interface AdminLabelInput {
@@ -206,6 +207,7 @@ export interface AdminLabelInput {
   type: 'RECOMMENDED' | 'PRIVILEGED'
   visibleInFilter: boolean
   sortOrder: number
+  parentSlug?: string | null
   translations: LabelTranslation[]
 }
 

@@ -49,7 +49,7 @@ class LabelAdminAppServiceTest {
     void create_returnsDefinitionResponseAndRecordsAudit() {
         LabelDefinition created = label(10L, "official", LabelType.RECOMMENDED, true, 1);
         when(rbacService.getUserRoleCodes("admin")).thenReturn(Set.of("SUPER_ADMIN"));
-        when(labelDefinitionService.create(eq("official"), eq(LabelType.RECOMMENDED), eq(true), eq(1), any(), eq("admin"), eq(Set.of("SUPER_ADMIN"))))
+        when(labelDefinitionService.create(eq("official"), eq(LabelType.RECOMMENDED), eq(true), eq(1), eq(null), any(), eq("admin"), eq(Set.of("SUPER_ADMIN"))))
                 .thenReturn(created);
         when(labelDefinitionService.listTranslations(10L))
                 .thenReturn(List.of(new LabelTranslation(10L, "en", "Official")));
@@ -60,6 +60,7 @@ class LabelAdminAppServiceTest {
                         LabelType.RECOMMENDED,
                         true,
                         1,
+                        null,
                         List.of(new LabelTranslationItemRequest("en", "Official"))
                 ),
                 "admin",
@@ -67,10 +68,39 @@ class LabelAdminAppServiceTest {
         );
 
         assertThat(response.slug()).isEqualTo("official");
+        assertThat(response.parentSlug()).isNull();
         assertThat(response.translations()).extracting(com.iflytek.skillhub.dto.LabelTranslationResponse::displayName)
                 .containsExactly("Official");
         verify(auditLogService).record(eq("admin"), eq("LABEL_CREATE"), eq("LABEL"), eq(10L), any(), eq("127.0.0.1"), eq("JUnit"), eq("{\"slug\":\"official\"}"));
         verify(labelSearchSyncService, never()).rebuildSkills(any());
+    }
+
+    @Test
+    void create_resolvesParentSlugInResponse() {
+        LabelDefinition parent = label(1L, "scope-zhimou", LabelType.RECOMMENDED, true, 0);
+        LabelDefinition created = label(10L, "req-analysis", LabelType.RECOMMENDED, false, 1);
+        created.setParentId(1L);
+        when(rbacService.getUserRoleCodes("admin")).thenReturn(Set.of("SUPER_ADMIN"));
+        when(labelDefinitionService.create(eq("req-analysis"), eq(LabelType.RECOMMENDED), eq(false), eq(1), eq("scope-zhimou"), any(), eq("admin"), eq(Set.of("SUPER_ADMIN"))))
+                .thenReturn(created);
+        when(labelDefinitionService.listTranslations(10L)).thenReturn(List.of());
+        when(labelDefinitionService.listByIds(List.of(1L))).thenReturn(List.of(parent));
+
+        LabelDefinitionResponse response = service.create(
+                new AdminLabelCreateRequest(
+                        "req-analysis",
+                        LabelType.RECOMMENDED,
+                        false,
+                        1,
+                        "scope-zhimou",
+                        List.of(new LabelTranslationItemRequest("zh", "需求分析"))
+                ),
+                "admin",
+                new AuditRequestContext("127.0.0.1", "JUnit")
+        );
+
+        assertThat(response.slug()).isEqualTo("req-analysis");
+        assertThat(response.parentSlug()).isEqualTo("scope-zhimou");
     }
 
     @Test
@@ -84,7 +114,7 @@ class LabelAdminAppServiceTest {
                 new SkillLabel(200L, 10L, "owner-2"),
                 new SkillLabel(100L, 10L, "owner-1")
         ));
-        when(labelDefinitionService.update(eq("official"), eq(LabelType.PRIVILEGED), eq(false), eq(3), any(), eq(Set.of("SUPER_ADMIN"))))
+        when(labelDefinitionService.update(eq("official"), eq(LabelType.PRIVILEGED), eq(false), eq(3), eq(null), any(), eq(Set.of("SUPER_ADMIN"))))
                 .thenReturn(updated);
         when(labelDefinitionService.listTranslations(10L))
                 .thenReturn(List.of(new LabelTranslation(10L, "en", "Official")));
@@ -95,6 +125,7 @@ class LabelAdminAppServiceTest {
                         LabelType.PRIVILEGED,
                         false,
                         3,
+                        null,
                         List.of(new LabelTranslationItemRequest("en", "Official"))
                 ),
                 "admin",

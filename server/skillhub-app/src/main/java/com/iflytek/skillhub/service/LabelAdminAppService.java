@@ -12,7 +12,9 @@ import com.iflytek.skillhub.dto.LabelDefinitionResponse;
 import com.iflytek.skillhub.dto.LabelSortOrderUpdateRequest;
 import com.iflytek.skillhub.dto.LabelTranslationResponse;
 import com.iflytek.skillhub.observability.RequestIdAccessor;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,8 +46,10 @@ public class LabelAdminAppService {
     }
 
     public List<LabelDefinitionResponse> listAll() {
-        return labelDefinitionService.listAll().stream()
-                .map(this::toResponse)
+        List<LabelDefinition> definitions = labelDefinitionService.listAll();
+        Map<Long, String> slugById = slugById(definitions);
+        return definitions.stream()
+                .map(definition -> toResponse(definition, slugById))
                 .toList();
     }
 
@@ -58,6 +62,7 @@ public class LabelAdminAppService {
                 request.type(),
                 request.visibleInFilter(),
                 request.sortOrder(),
+                request.parentSlug(),
                 toTranslations(request.translations()),
                 userId,
                 platformRoles(userId)
@@ -81,6 +86,7 @@ public class LabelAdminAppService {
                 request.type(),
                 request.visibleInFilter(),
                 request.sortOrder(),
+                request.parentSlug(),
                 toTranslations(request.translations()),
                 platformRoles(userId)
         );
@@ -129,17 +135,43 @@ public class LabelAdminAppService {
     }
 
     private LabelDefinitionResponse toResponse(LabelDefinition labelDefinition) {
+        return toResponse(labelDefinition, slugById(List.of(labelDefinition)));
+    }
+
+    private LabelDefinitionResponse toResponse(LabelDefinition labelDefinition, Map<Long, String> slugById) {
         List<LabelTranslationResponse> translations = labelDefinitionService.listTranslations(labelDefinition.getId()).stream()
                 .map(translation -> new LabelTranslationResponse(translation.getLocale(), translation.getDisplayName()))
                 .toList();
+        String parentSlug = labelDefinition.getParentId() == null ? null : slugById.get(labelDefinition.getParentId());
         return new LabelDefinitionResponse(
                 labelDefinition.getSlug(),
                 labelDefinition.getType().name(),
                 labelDefinition.isVisibleInFilter(),
                 labelDefinition.getSortOrder(),
                 translations,
-                labelDefinition.getCreatedAt()
+                labelDefinition.getCreatedAt(),
+                parentSlug
         );
+    }
+
+    private Map<Long, String> slugById(List<LabelDefinition> definitions) {
+        Map<Long, String> slugById = new LinkedHashMap<>();
+        for (LabelDefinition definition : definitions) {
+            if (definition.getId() != null) {
+                slugById.put(definition.getId(), definition.getSlug());
+            }
+        }
+        List<Long> missingParentIds = definitions.stream()
+                .map(LabelDefinition::getParentId)
+                .filter(parentId -> parentId != null && !slugById.containsKey(parentId))
+                .distinct()
+                .toList();
+        if (!missingParentIds.isEmpty()) {
+            for (LabelDefinition parent : labelDefinitionService.listByIds(missingParentIds)) {
+                slugById.put(parent.getId(), parent.getSlug());
+            }
+        }
+        return slugById;
     }
 
     private Set<String> platformRoles(String userId) {

@@ -99,8 +99,9 @@ vi.mock('@/shared/hooks/use-skill-queries', () => ({
 vi.mock('@/shared/hooks/use-label-queries', () => ({
   useVisibleLabels: () => ({
     data: [
-      { slug: 'scope-zhimou', type: 'RECOMMENDED', displayName: '智谋' },
-      { slug: 'scope-zhice', type: 'RECOMMENDED', displayName: '智测' },
+      { slug: 'scope-zhimou', type: 'RECOMMENDED', displayName: '智谋', parentSlug: null },
+      { slug: 'scope-zhice', type: 'RECOMMENDED', displayName: '智测', parentSlug: null },
+      { slug: 'req-analysis', type: 'RECOMMENDED', displayName: '需求分析', parentSlug: 'scope-zhimou' },
     ],
   }),
 }))

@@ -88,14 +88,16 @@ describe('AdminLabelsPage', () => {
           sortOrder: 0,
           translations: [{ locale: 'en', displayName: 'Official' }],
           createdAt: '2026-03-20T00:00:00Z',
+          parentSlug: null,
         },
         {
-          slug: 'verified',
-          type: 'PRIVILEGED',
+          slug: 'req-analysis',
+          type: 'RECOMMENDED',
           visibleInFilter: false,
           sortOrder: 1,
-          translations: [{ locale: 'en', displayName: 'Verified' }],
+          translations: [{ locale: 'en', displayName: 'Requirement Analysis' }],
           createdAt: '2026-03-21T00:00:00Z',
+          parentSlug: 'official',
         },
       ],
       isLoading: false,
@@ -104,7 +106,9 @@ describe('AdminLabelsPage', () => {
     const html = renderToStaticMarkup(<AdminLabelsPage />)
 
     expect(html).toContain('official')
-    expect(html).toContain('verified')
+    expect(html).toContain('req-analysis')
+    expect(html).toContain('adminLabels.colParent')
+    expect(html).toContain('adminLabels.parentNone')
     expect(html).toContain('adminLabels.editAction')
     expect(html).toContain('adminLabels.deleteAction')
   })
@@ -115,6 +119,7 @@ describe('AdminLabelsPage', () => {
       type: 'RECOMMENDED',
       visibleInFilter: true,
       sortOrder: Number.NaN,
+      parentSlug: ' Scope-Zhice ',
       translations: [
         { locale: ' ZH_cn ', displayName: ' 代码生成 ' },
         { locale: ' ', displayName: ' ' },
@@ -123,7 +128,21 @@ describe('AdminLabelsPage', () => {
 
     expect(normalized.slug).toBe('code-generation')
     expect(normalized.sortOrder).toBe(0)
+    expect(normalized.parentSlug).toBe('scope-zhice')
     expect(normalized.translations).toEqual([{ locale: 'zh-cn', displayName: '代码生成' }])
+  })
+
+  it('clears parentSlug when the label is privileged', () => {
+    const normalized = normalizeLabelFormState({
+      slug: 'official',
+      type: 'PRIVILEGED',
+      visibleInFilter: true,
+      sortOrder: 0,
+      parentSlug: 'scope-zhice',
+      translations: [{ locale: 'en', displayName: 'Official' }],
+    })
+
+    expect(normalized.parentSlug).toBe('')
   })
 
   it('rejects invalid slug patterns and duplicate locales in validation', () => {

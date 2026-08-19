@@ -4,12 +4,10 @@ import { Building2, Filter, Hash } from 'lucide-react'
 import type { LabelItem } from '@/api/types'
 import { Button } from '@/shared/ui/button'
 import {
-  BUSINESS_SCOPES,
   COLLAPSED_SEARCH_TAG_COUNT,
-  findScopeForLabelSlug,
-  isBusinessScopeSlug,
-  listBusinessSubTagOptions,
-  slugForBusinessLabel,
+  listManagedScopeLabels,
+  listManagedSubTagLabels,
+  resolveManagedParentSlug,
 } from '@/shared/lib/business-scope'
 import { cn } from '@/shared/lib/utils'
 
@@ -81,31 +79,10 @@ export function SearchFilterPanel({
 }: SearchFilterPanelProps) {
   const { t } = useTranslation()
   const [tagsExpanded, setTagsExpanded] = useState(false)
-  const activeScope = findScopeForLabelSlug(selectedLabel)
-  const activeScopeSlug = activeScope ? slugForBusinessLabel(activeScope) : undefined
+  const activeScopeSlug = resolveManagedParentSlug(labels, selectedLabel || undefined)
 
-  const scopeOptions = labels.filter((label) => isBusinessScopeSlug(label.slug))
-  const scopes = scopeOptions.length > 0
-    ? scopeOptions
-    : BUSINESS_SCOPES.map((displayName) => ({
-        slug: slugForBusinessLabel(displayName) ?? displayName,
-        type: 'RECOMMENDED',
-        displayName,
-      }))
-
-  const catalogTags = listBusinessSubTagOptions(activeScope)
-  const extraTags = activeScope
-    ? []
-    : labels.filter((label) => {
-        if (isBusinessScopeSlug(label.slug)) {
-          return false
-        }
-        return !catalogTags.some((tag) => tag.slug === label.slug)
-      })
-  const tagOptions = [
-    ...catalogTags,
-    ...extraTags.map((label) => ({ slug: label.slug, displayName: label.displayName })),
-  ]
+  const scopes = listManagedScopeLabels(labels)
+  const tagOptions = listManagedSubTagLabels(labels, selectedLabel || undefined)
   const hiddenTagCount = Math.max(0, tagOptions.length - COLLAPSED_SEARCH_TAG_COUNT)
   const visibleTags = tagsExpanded || hiddenTagCount === 0
     ? tagOptions

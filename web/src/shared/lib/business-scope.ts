@@ -138,6 +138,38 @@ export function isBusinessScopeSlug(slug: string) {
   return slug.startsWith('scope-')
 }
 
+export function usesManagedParentAssociation<T extends { parentSlug?: string | null }>(labels: T[]) {
+  return labels.some((label) => label.parentSlug !== undefined)
+}
+
+export function isRootManagedLabel<T extends { slug: string; parentSlug?: string | null }>(label: T) {
+  if (label.parentSlug) {
+    return false
+  }
+  if (label.parentSlug === null) {
+    return true
+  }
+  return isBusinessScopeSlug(label.slug)
+}
+
+export function resolveManagedParentSlug<T extends { slug: string; parentSlug?: string | null }>(
+  labels: T[],
+  selectedLabelSlug?: string,
+): string | undefined {
+  if (!selectedLabelSlug) {
+    return undefined
+  }
+  const selected = labels.find((label) => label.slug === selectedLabelSlug)
+  if (selected?.parentSlug) {
+    return selected.parentSlug
+  }
+  if (selected && usesManagedParentAssociation(labels)) {
+    return selected.slug
+  }
+  const catalogScope = findScopeForLabelSlug(selectedLabelSlug)
+  return catalogScope ? slugForBusinessLabel(catalogScope) : selectedLabelSlug
+}
+
 export function slugForBusinessLabel(displayName: string) {
   if (displayName in BUSINESS_SCOPE_SLUGS) {
     return BUSINESS_SCOPE_SLUGS[displayName as BusinessScope]
@@ -173,4 +205,37 @@ export function listBusinessSubTagOptions(scope?: string): Array<{ slug: string;
       return slug ? { slug, displayName } : null
     })
     .filter((item): item is { slug: string; displayName: string } => item !== null)
+}
+
+export function isRecommendedLabel(type: string) {
+  return type !== 'PRIVILEGED'
+}
+
+export function listManagedScopeLabels<T extends { slug: string; type?: string; parentSlug?: string | null }>(labels: T[]): T[] {
+  const recommended = labels.filter((label) => isRecommendedLabel(label.type ?? 'RECOMMENDED'))
+  if (usesManagedParentAssociation(labels)) {
+    return recommended.filter((label) => !label.parentSlug)
+  }
+  return recommended.filter((label) => isBusinessScopeSlug(label.slug))
+}
+
+export function listManagedSubTagLabels<T extends { slug: string; type: string; parentSlug?: string | null }>(
+  labels: T[],
+  selectedLabelSlug?: string,
+): T[] {
+  if (usesManagedParentAssociation(labels)) {
+    const tags = labels.filter((label) => isRecommendedLabel(label.type) && Boolean(label.parentSlug))
+    const parentSlug = resolveManagedParentSlug(labels, selectedLabelSlug)
+    if (!parentSlug) {
+      return tags
+    }
+    return tags.filter((tag) => tag.parentSlug === parentSlug)
+  }
+  const tags = labels.filter((label) => isRecommendedLabel(label.type) && !isBusinessScopeSlug(label.slug))
+  const activeScope = selectedLabelSlug ? findScopeForLabelSlug(selectedLabelSlug) : undefined
+  if (!activeScope) {
+    return tags
+  }
+  const catalogSlugs = new Set(listBusinessSubTagOptions(activeScope).map((tag) => tag.slug))
+  return tags.filter((tag) => catalogSlugs.has(tag.slug) || findScopeForLabelSlug(tag.slug) === undefined)
 }

@@ -3512,6 +3512,7 @@ export interface components {
             slug?: string;
             type?: string;
             displayName?: string;
+            parentSlug?: string | null;
         };
         ApiResponseMapStringInteger: {
             /** Format: int32 */
@@ -3652,6 +3653,7 @@ export interface components {
             visibleInFilter?: boolean;
             /** Format: int32 */
             sortOrder?: number;
+            parentSlug?: string | null;
             translations: components["schemas"]["LabelTranslationItemRequest"][];
         };
         LabelTranslationItemRequest: {
@@ -3676,6 +3678,7 @@ export interface components {
             translations?: components["schemas"]["LabelTranslationResponse"][];
             /** Format: date-time */
             createdAt?: string;
+            parentSlug?: string | null;
         };
         LabelTranslationResponse: {
             locale?: string;
@@ -4161,6 +4164,7 @@ export interface components {
             visibleInFilter?: boolean;
             /** Format: int32 */
             sortOrder?: number;
+            parentSlug?: string | null;
             translations: components["schemas"]["LabelTranslationItemRequest"][];
         };
         MergeVerifyRequest: {

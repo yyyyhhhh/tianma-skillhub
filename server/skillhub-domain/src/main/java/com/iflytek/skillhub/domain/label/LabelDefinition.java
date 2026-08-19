@@ -22,6 +22,9 @@ public class LabelDefinition {
     @Column(name = "visible_in_filter", nullable = false)
     private boolean visibleInFilter = true;
 
+    @Column(name = "parent_id")
+    private Long parentId;
+
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
 
@@ -73,6 +76,10 @@ public class LabelDefinition {
         return visibleInFilter;
     }
 
+    public Long getParentId() {
+        return parentId;
+    }
+
     public int getSortOrder() {
         return sortOrder;
     }
@@ -95,6 +102,10 @@ public class LabelDefinition {
 
     public void setVisibleInFilter(boolean visibleInFilter) {
         this.visibleInFilter = visibleInFilter;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
     }
 
     public void setSortOrder(int sortOrder) {

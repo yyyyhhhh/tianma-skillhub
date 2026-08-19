@@ -594,6 +594,7 @@ export const labelApi = {
         type: request.type,
         visibleInFilter: request.visibleInFilter,
         sortOrder: request.sortOrder,
+        parentSlug: request.parentSlug?.trim() ? request.parentSlug.trim() : null,
         translations: request.translations.map((translation) => ({
           locale: translation.locale.trim(),
           displayName: translation.displayName.trim(),
@@ -612,6 +613,7 @@ export const labelApi = {
         type: request.type,
         visibleInFilter: request.visibleInFilter,
         sortOrder: request.sortOrder,
+        parentSlug: request.parentSlug?.trim() ? request.parentSlug.trim() : null,
         translations: request.translations.map((translation) => ({
           locale: translation.locale.trim(),
           displayName: translation.displayName.trim(),

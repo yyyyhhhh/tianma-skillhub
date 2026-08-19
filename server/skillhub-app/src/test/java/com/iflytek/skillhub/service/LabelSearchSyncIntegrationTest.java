@@ -221,6 +221,7 @@ class LabelSearchSyncIntegrationTest {
                         LabelType.RECOMMENDED,
                         true,
                         0,
+                        null,
                         List.of(
                                 new LabelTranslationItemRequest("en", updatedEnglish),
                                 new LabelTranslationItemRequest("zh-CN", updatedChinese)

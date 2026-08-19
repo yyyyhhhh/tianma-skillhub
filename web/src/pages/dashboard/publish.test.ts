@@ -59,7 +59,15 @@ vi.mock('@/shared/hooks/use-namespace-queries', () => ({
 
 vi.mock('@/shared/hooks/use-dashboard-queries', () => ({
   useAssetDepartments: () => ({ data: ['后端开发'] }),
-  useBusinessScopes: () => ({ data: ['智谋', '智码'] }),
+}))
+
+vi.mock('@/shared/hooks/use-label-queries', () => ({
+  useVisibleLabels: () => ({
+    data: [
+      { slug: 'scope-zhimou', type: 'RECOMMENDED', displayName: '智谋' },
+      { slug: 'scope-zhima', type: 'RECOMMENDED', displayName: '智码' },
+    ],
+  }),
 }))
 
 vi.mock('@/shared/components/dashboard-page-header', () => ({
