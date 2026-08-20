@@ -2,12 +2,8 @@ import { describe, expect, it } from 'vitest'
 import * as mod from './upload-zone'
 
 /**
- * upload-zone.tsx exports the UploadZone component. It is a stateless
- * dropzone wrapper with no exported constants, validation logic, or
- * helper functions.
- *
- * We verify the export contract so downstream consumers break fast if
- * the module shape changes.
+ * upload-zone.tsx exports the UploadZone component. Package packing lives in
+ * pack-skill-folder.ts; this test only guards the public module export.
  */
 describe('upload-zone module exports', () => {
   it('exports the UploadZone component', () => {

@@ -19,14 +19,18 @@ public class BasicPrePublishValidator implements PrePublishValidator {
     private static final Pattern PLACEHOLDER_VALUE = Pattern.compile(
             "(?i).*(your|example|sample|placeholder|changeme|replace|dummy|mock|test|fake|todo|xxx|redacted).*"
     );
+    private static final Pattern CODE_IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
     private static final List<SecretRule> SECRET_RULES = List.of(
-            new SecretRule(Pattern.compile("(AKIA[0-9A-Z]{16})"), 1, "cloud access key"),
-            new SecretRule(Pattern.compile("(ghp_[A-Za-z0-9]{20,})"), 1, "GitHub token"),
-            new SecretRule(Pattern.compile("(sk-[A-Za-z0-9]{20,})"), 1, "API key"),
+            new SecretRule(Pattern.compile("(AKIA[0-9A-Z]{16})"), 1, "cloud access key", false),
+            new SecretRule(Pattern.compile("(ghp_[A-Za-z0-9]{20,})"), 1, "GitHub token", false),
+            new SecretRule(Pattern.compile("(sk-[A-Za-z0-9]{20,})"), 1, "API key", false),
             new SecretRule(
-                    Pattern.compile("(?i)(api[_-]?key|access[_-]?key|secret|password|token)\\s*[:=]\\s*['\\\"]?([A-Za-z0-9_\\-]{12,})"),
+                    Pattern.compile(
+                            "(?i)(?<![A-Za-z0-9_])(api[_-]?key|api[_-]?secret|access[_-]?key|secret|password|token)(?![A-Za-z0-9_])"
+                                    + "\\s*[:=]\\s*['\\\"]?([A-Za-z0-9_\\-]{12,})"),
                     2,
-                    "secret or token")
+                    "secret or token",
+                    true)
     );
 
     @Override
@@ -48,6 +52,9 @@ public class BasicPrePublishValidator implements PrePublishValidator {
                     }
                     String matchedValue = matcher.group(rule.valueGroup());
                     if (isPlaceholderValue(matchedValue)) {
+                        continue;
+                    }
+                    if (rule.ignoreCodeReferences() && isCodeReference(line, matcher, rule.valueGroup(), matchedValue)) {
                         continue;
                     }
                     warnings.add(entry.path()
@@ -87,5 +94,24 @@ public class BasicPrePublishValidator implements PrePublishValidator {
                 || value.chars().allMatch(ch -> ch == 'x' || ch == 'X' || ch == '*' || ch == '-');
     }
 
-    private record SecretRule(Pattern pattern, int valueGroup, String label) {}
+    /**
+     * Assignment keywords often appear in safe code such as
+     * {@code api_secret = get_env_credentials()}. Those are identifiers or calls, not leaked literals.
+     */
+    private boolean isCodeReference(String line, Matcher matcher, int valueGroup, String value) {
+        int end = matcher.end();
+        if (end < line.length() && line.substring(end).stripLeading().startsWith("(")) {
+            return true;
+        }
+        int valueStart = matcher.start(valueGroup);
+        if (valueStart > 0) {
+            char previous = line.charAt(valueStart - 1);
+            if (previous == '\'' || previous == '"') {
+                return false;
+            }
+        }
+        return CODE_IDENTIFIER.matcher(value).matches();
+    }
+
+    private record SecretRule(Pattern pattern, int valueGroup, String label, boolean ignoreCodeReferences) {}
 }

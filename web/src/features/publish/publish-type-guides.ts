@@ -18,9 +18,9 @@ export const PUBLISH_TYPE_GUIDES: Record<'SKILL', PublishTypeGuide> = {
     descriptionZh: '描述该技能的名称、功能和用法，是识别和展示技能的核心文件。',
     descriptionEn: 'Describes the skill name, capabilities, and usage.',
     formatHintZh:
-      '资产名称 name 可通过 YAML frontmatter（文件顶部 --- 包裹的 name 字段）或文件一级标题（# 标题）提供，至少填写其一；description 建议填写，未填写时使用表单中的资产描述。',
+      '可上传 ZIP，或直接选择包含 SKILL.md 的文件夹（系统会在浏览器中自动打包）。资产名称 name 可通过 YAML frontmatter（文件顶部 --- 包裹的 name 字段）或文件一级标题（# 标题）提供，至少填写其一；description 建议填写，未填写时使用表单中的资产描述。',
     formatHintEn:
-      'Provide name via YAML frontmatter (--- name ---) or a top-level # heading. description is recommended; otherwise the form summary is used.',
+      'Upload a ZIP, or select the folder that contains SKILL.md (it is packed in the browser). Provide name via YAML frontmatter (--- name ---) or a top-level # heading. description is recommended; otherwise the form summary is used.',
     namePlaceholderZh: '如：安全代码审计技能',
     namePlaceholderEn: 'e.g. Secure code audit skill',
     requiresZip: true,

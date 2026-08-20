@@ -5,7 +5,7 @@ import { copyToClipboard } from '@/shared/lib/clipboard'
 import { toast } from '@/shared/lib/toast'
 import type { PublishTypeGuide } from '@/features/publish/publish-type-guides'
 
-const ZIP_TREE = `example-skill.zip
+const ZIP_TREE = `example-skill/   或   example-skill.zip
   ├── SKILL.md
   ├── scripts/
   │   └── main.py

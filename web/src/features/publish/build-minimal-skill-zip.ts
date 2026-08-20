@@ -68,7 +68,7 @@ export type ZipEntryInput = {
   content: Uint8Array
 }
 
-function buildStoreZip(entries: ZipEntryInput[]): Uint8Array {
+export function buildStoreZip(entries: ZipEntryInput[]): Uint8Array {
   const localParts: Uint8Array[] = []
   const centralParts: Uint8Array[] = []
   let offset = 0
@@ -159,8 +159,12 @@ export function buildMinimalSkillZip(params: {
       content: extra.content,
     })
   }
+  return buildZipFile(entries, params.fileName ?? 'asset.zip')
+}
+
+export function buildZipFile(entries: ZipEntryInput[], fileName: string): File {
   const zipBytes = buildStoreZip(entries)
   const ab = new ArrayBuffer(zipBytes.byteLength)
   new Uint8Array(ab).set(zipBytes)
-  return new File([ab], params.fileName ?? 'asset.zip', { type: 'application/zip' })
+  return new File([ab], fileName, { type: 'application/zip' })
 }

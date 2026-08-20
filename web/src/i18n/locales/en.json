@@ -1261,9 +1261,17 @@
     "saveErrorTitle": "Failed to update namespace"
   },
   "upload": {
-    "dropHint": "Drop to upload...",
-    "dragHint": "Drag a ZIP file here, or click to select",
-    "formatHint": "Only .zip format supported"
+    "dropHint": "Drop a ZIP or skill folder to upload...",
+    "dragHint": "Drag a ZIP or skill folder here, or click to select",
+    "formatHint": "ZIP files, or a folder that contains SKILL.md at its root",
+    "selectFolder": "Select folder",
+    "packing": "Packing folder...",
+    "packFailed": "Could not pack the folder. Zip it locally and try again.",
+    "folderEmpty": "The folder is empty, or only contains ignored files.",
+    "folderMissingSkillMd": "The folder needs SKILL.md at the package root. Select the skill directory itself, not its parent.",
+    "folderTooManyFiles": "The folder has more than {{count}} files. Remove some and try again.",
+    "folderTooLarge": "The folder is larger than 100MB",
+    "folderFileTooLarge": "{{file}} is larger than 10MB. Remove it and try again."
   },
   "layout": {
     "footerDescription": "天马AI资产中心 — enterprise AI asset management and distribution."
@@ -1462,8 +1470,8 @@
     "templateHint": "After copying, replace name and description between --- with your own content",
     "descriptorFileLabel": "Descriptor file",
     "formatNotes": "Format notes",
-    "zipFormatTitle": "Archive format (put {{file}} at zip root)",
-    "fileRequired": "Please upload a ZIP package",
+    "zipFormatTitle": "Package layout (put {{file}} at the ZIP or folder root)",
+    "fileRequired": "Please upload a ZIP, or a folder that contains SKILL.md",
     "missingRequired": "Please complete: {{fields}}",
     "reviewNotice": {
       "title": "Review Notice",

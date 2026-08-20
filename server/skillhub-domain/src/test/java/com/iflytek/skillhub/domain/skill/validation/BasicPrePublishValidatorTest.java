@@ -7,7 +7,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BasicPrePublishValidatorTest {
@@ -97,5 +96,51 @@ class BasicPrePublishValidatorTest {
         ));
 
         assertTrue(result.passed());
+        assertTrue(result.warnings().isEmpty());
+    }
+
+    @Test
+    void shouldNotWarnWhenCredentialsComeFromAFunctionCall() {
+        PackageEntry script = new PackageEntry(
+                "scripts/xfei_hyper_tts.py",
+                """
+                def speak():
+                    app_id, api_key, api_secret = get_env_credentials()
+                    api_key = os.getenv("XFYUN_API_KEY")
+                """.getBytes(StandardCharsets.UTF_8),
+                140,
+                "text/x-python"
+        );
+
+        ValidationResult result = validator.validate(new PrePublishValidator.SkillPackageContext(
+                List.of(script),
+                new SkillMetadata("TTS", "desc", "1.0.0", "body", Map.of()),
+                "user-1",
+                1L
+        ));
+
+        assertTrue(result.passed());
+        assertTrue(result.warnings().isEmpty(), () -> String.join("\n", result.warnings()));
+    }
+
+    @Test
+    void shouldStillWarnOnQuotedLiteralSecrets() {
+        PackageEntry script = new PackageEntry(
+                "scripts/client.py",
+                "api_secret = \"wxyzabcd1234leak\"\n".getBytes(StandardCharsets.UTF_8),
+                32,
+                "text/x-python"
+        );
+
+        ValidationResult result = validator.validate(new PrePublishValidator.SkillPackageContext(
+                List.of(script),
+                new SkillMetadata("TTS", "desc", "1.0.0", "body", Map.of()),
+                "user-1",
+                1L
+        ));
+
+        assertTrue(result.passed());
+        assertTrue(result.warnings().stream().anyMatch(warning ->
+                warning.contains("scripts/client.py") && warning.contains("line 1")));
     }
 }
