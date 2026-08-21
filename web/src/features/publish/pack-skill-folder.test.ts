@@ -49,6 +49,32 @@ describe('pack-skill-folder helpers', () => {
     expect(resolveSkillPackageRoot(['nested/demo/SKILL.md', 'other/readme.md'])).toBe('nested/demo')
     expect(resolveSkillPackageRoot(['readme.md'])).toBeNull()
   })
+
+  it('rejects multiple sibling skill roots as ambiguous', () => {
+    expect(() =>
+      resolveSkillPackageRoot(['a/SKILL.md', 'b/SKILL.md', 'a/scripts/run.py']),
+    ).toThrow(PackSkillFolderError)
+    try {
+      resolveSkillPackageRoot(['parent/a/SKILL.md', 'parent/b/SKILL.md'])
+      expect.unreachable('expected ambiguous skill roots')
+    } catch (error) {
+      expect(error).toMatchObject({
+        key: 'upload.folderAmbiguousSkillRoots',
+      } satisfies Partial<PackSkillFolderError>)
+    }
+  })
+
+  it('keeps a single outer root when SKILL.md is nested inside it', () => {
+    expect(
+      resolveSkillPackageRoot(['demo/SKILL.md', 'demo/nested/SKILL.md', 'demo/scripts/run.py']),
+    ).toBe('demo')
+  })
+
+  it('recognizes SKILL.md regardless of filename case', () => {
+    expect(resolveSkillPackageRoot(['demo/skill.md', 'demo/scripts/main.py'])).toBe('demo')
+    expect(resolveSkillPackageRoot(['Skill.MD', 'scripts/main.py'])).toBe('')
+    expect(resolveSkillPackageRoot(['nested/demo/Skill.md'])).toBe('nested/demo')
+  })
 })
 
 describe('resolvePublishPackage', () => {
@@ -76,6 +102,20 @@ describe('resolvePublishPackage', () => {
     expect(text).toContain('SKILL.md')
     expect(text).toContain('scripts/run.py')
     expect(text).not.toContain('.DS_Store')
+  })
+
+  it('accepts lowercase skill.md and canonicalizes it to SKILL.md in the zip', async () => {
+    const packed = await packSkillFolder([
+      fileAt('my-skill/skill.md', '---\nname: demo\n---\n'),
+      fileAt('my-skill/scripts/run.py', 'print(1)\n'),
+    ])
+
+    expect(packed.source).toBe('folder')
+    expect(packed.displayName).toBe('my-skill')
+    const text = new TextDecoder().decode(await packed.file.arrayBuffer())
+    expect(text).toContain('SKILL.md')
+    expect(text).not.toContain('skill.md')
+    expect(text).toContain('scripts/run.py')
   })
 
   it('uses preferredName when drag-drop paths have no top-level folder', async () => {
@@ -107,6 +147,50 @@ describe('resolvePublishPackage', () => {
   it('rejects a folder without SKILL.md', async () => {
     await expect(packSkillFolder([fileAt('demo/readme.md', 'hi')])).rejects.toMatchObject({
       key: 'upload.folderMissingSkillMd',
+    } satisfies Partial<PackSkillFolderError>)
+  })
+
+  it('rejects a single non-zip file as invalid drop type instead of missing SKILL.md', async () => {
+    const photo = new File(['fake'], 'photo.png', { type: 'image/png' })
+    await expect(resolvePublishPackage([photo])).rejects.toMatchObject({
+      key: 'upload.invalidDropType',
+    } satisfies Partial<PackSkillFolderError>)
+  })
+
+  it('rejects a parent folder that contains multiple skills', async () => {
+    await expect(
+      packSkillFolder([
+        fileAt('skills/a/SKILL.md', '---\nname: a\n---\n'),
+        fileAt('skills/b/SKILL.md', '---\nname: b\n---\n'),
+        fileAt('skills/a/scripts/run.py', 'print(1)\n'),
+      ]),
+    ).rejects.toMatchObject({
+      key: 'upload.folderAmbiguousSkillRoots',
+    } satisfies Partial<PackSkillFolderError>)
+  })
+
+  it('rejects files with disallowed extensions before packing', async () => {
+    await expect(
+      packSkillFolder([
+        fileAt('demo/SKILL.md', '---\nname: demo\n---\n'),
+        fileAt('demo/scripts/run.py', 'print(1)\n'),
+        fileAt('demo/bin/malware.exe', 'MZ'),
+      ]),
+    ).rejects.toMatchObject({
+      key: 'upload.folderDisallowedExtension',
+      params: { file: 'bin/malware.exe' },
+    } satisfies Partial<PackSkillFolderError>)
+  })
+
+  it('rejects path traversal segments instead of silently dropping them', async () => {
+    await expect(
+      packSkillFolder([
+        fileAt('demo/SKILL.md', '---\nname: demo\n---\n'),
+        fileAt('demo/../secret.txt', 'leak'),
+      ]),
+    ).rejects.toMatchObject({
+      key: 'upload.folderUnsafePath',
+      params: { file: '../secret.txt' },
     } satisfies Partial<PackSkillFolderError>)
   })
 

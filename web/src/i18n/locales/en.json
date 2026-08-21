@@ -1269,10 +1269,17 @@
     "packing": "Packing folder...",
     "packFailed": "Could not pack the folder. Zip it locally and try again.",
     "folderEmpty": "The folder is empty, or only contains ignored files.",
-    "folderMissingSkillMd": "The folder needs SKILL.md at the package root. Select the skill directory itself, not its parent.",
+    "folderMissingSkillMd": "No SKILL.md found in the selected folder. Choose the skill directory itself (with SKILL.md at its root), not its parent.",
+    "folderAmbiguousSkillRoots": "Multiple skill folders detected ({{roots}}). Upload one folder that contains a single SKILL.md at a time.",
+    "invalidDropType": "Drop a skill ZIP, or a folder that contains SKILL.md. A single ordinary file cannot be published.",
+    "fileTypeRejected": "Unsupported file type. Upload a .zip or select a skill folder.",
+    "tooManyFiles": "Upload one skill package at a time.",
+    "fileRejected": "The file was not accepted. Upload a skill ZIP or skill folder.",
     "folderTooManyFiles": "The folder has more than {{count}} files. Remove some and try again.",
     "folderTooLarge": "The folder is larger than 100MB",
-    "folderFileTooLarge": "{{file}} is larger than 10MB. Remove it and try again."
+    "folderFileTooLarge": "{{file}} is larger than 10MB. Remove it and try again.",
+    "folderDisallowedExtension": "{{file}} has a disallowed file extension. Remove it and try again.",
+    "folderUnsafePath": "Path {{file}} is invalid (contains . or ..). Fix it and try again."
   },
   "layout": {
     "footerDescription": "天马AI资产中心 — enterprise AI asset management and distribution."
@@ -1424,6 +1431,7 @@
     "summaryHint": "Required. Shown on the asset detail page.",
     "department": "Function",
     "departmentPlaceholder": "Select function",
+    "clearDepartment": "Clear function",
     "departmentHint": "Choose: Backend / Frontend / UI / Product / QA / Ops",
     "businessScope": "Business scope",
     "businessScopeHint": "Auto-attached as system labels after publish; visible in search and detail",

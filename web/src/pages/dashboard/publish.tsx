@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
+import { X } from 'lucide-react'
 import { UploadZone } from '@/features/publish/upload-zone'
 import type { PublishPackageSelection } from '@/features/publish/pack-skill-folder'
 import { PublishPackageGuide } from '@/features/publish/publish-package-guide'
@@ -355,20 +356,33 @@ export function PublishPage() {
 
           <div className="space-y-3">
             <Label htmlFor="department" className="text-sm font-semibold font-heading">{t('publish.department')}</Label>
-            <Select
-              value={normalizeSelectValue(department) ?? EMPTY_NAMESPACE_VALUE}
-              onValueChange={(value) => setDepartment(value === EMPTY_NAMESPACE_VALUE ? '' : value)}
-            >
-              <SelectTrigger id="department">
-                <SelectValue placeholder={t('publish.departmentPlaceholder')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EMPTY_NAMESPACE_VALUE}>{t('publish.departmentPlaceholder')}</SelectItem>
-                {(departments ?? []).map((item) => (
-                  <SelectItem key={item} value={item}>{item}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <Select
+                value={normalizeSelectValue(department)}
+                onValueChange={setDepartment}
+              >
+                <SelectTrigger id="department" className={department ? 'pr-16' : undefined}>
+                  <SelectValue placeholder={t('publish.departmentPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(departments ?? []).map((item) => (
+                    <SelectItem key={item} value={item}>{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {department ? (
+                <button
+                  type="button"
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={() => setDepartment('')}
+                  className="absolute right-9 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-secondary/70 hover:text-foreground"
+                  aria-label={t('publish.clearDepartment')}
+                  title={t('publish.clearDepartment')}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
             <p className="text-xs text-muted-foreground">{t('publish.departmentHint')}</p>
           </div>
         </section>

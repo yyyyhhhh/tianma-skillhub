@@ -143,4 +143,46 @@ class BasicPrePublishValidatorTest {
         assertTrue(result.warnings().stream().anyMatch(warning ->
                 warning.contains("scripts/client.py") && warning.contains("line 1")));
     }
+
+    @Test
+    void shouldWarnOnSecretsInAllowedSourceExtensionsNotPreviouslyScanned() {
+        PackageEntry cjs = entry(
+                "scripts/client.cjs",
+                "api_secret = \"wxyzabcd1234leak\"\n",
+                "text/javascript"
+        );
+        PackageEntry mjs = entry(
+                "scripts/client.mjs",
+                "token=sk-abcdefghijklmnopqrstuvwxyz123456\n",
+                "text/javascript"
+        );
+        PackageEntry tsx = entry(
+                "ui/App.tsx",
+                "const api_key = \"wxyzabcd1234leak\";\n",
+                "text/tsx"
+        );
+        PackageEntry jsx = entry(
+                "ui/Widget.jsx",
+                "const password = \"wxyzabcd1234leak\";\n",
+                "text/jsx"
+        );
+
+        ValidationResult result = validator.validate(new PrePublishValidator.SkillPackageContext(
+                List.of(cjs, mjs, tsx, jsx),
+                new SkillMetadata("Leak", "desc", "1.0.0", "body", Map.of()),
+                "user-1",
+                1L
+        ));
+
+        assertTrue(result.passed());
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("scripts/client.cjs")));
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("scripts/client.mjs")));
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("ui/App.tsx")));
+        assertTrue(result.warnings().stream().anyMatch(w -> w.contains("ui/Widget.jsx")));
+    }
+
+    private static PackageEntry entry(String path, String content, String contentType) {
+        byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        return new PackageEntry(path, bytes, bytes.length, contentType);
+    }
 }

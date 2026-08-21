@@ -7,6 +7,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -25,11 +26,18 @@ public final class SkillPackagePolicy {
             // Configuration and schemas
             ".toml", ".xml", ".xsd", ".xsl", ".dtd", ".ini", ".cfg", ".env",
             // Scripts and source code
-            ".js", ".cjs", ".mjs", ".ts", ".py", ".sh", ".rb", ".go", ".rs", ".java", ".kt",
+            ".js", ".cjs", ".mjs", ".ts", ".tsx", ".jsx", ".py", ".sh", ".rb", ".go", ".rs", ".java", ".kt",
             ".lua", ".sql", ".r", ".bat", ".ps1", ".zsh", ".bash",
             // Images
             ".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp", ".ico",
             // Office documents
+            ".doc", ".xls", ".ppt", ".docx", ".xlsx", ".pptx"
+    );
+
+    /** 二进制或不适合按 UTF-8 文本做密钥扫描的扩展名（其余允许扩展名均扫描）。 */
+    private static final Set<String> NON_TEXT_EXTENSIONS = Set.of(
+            ".pdf",
+            ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico",
             ".doc", ".xls", ".ppt", ".docx", ".xlsx", ".pptx"
     );
 
@@ -81,6 +89,26 @@ public final class SkillPackagePolicy {
 
     public static boolean hasAllowedExtension(String path) {
         return ALLOWED_EXTENSIONS.stream().anyMatch(path::endsWith);
+    }
+
+    /**
+     * Whether the path is an allowed text-like file that should be secret-scanned
+     * (and UTF-8 validated). Derived from {@link #ALLOWED_EXTENSIONS} minus binary types.
+     */
+    public static boolean isTextLikePath(String path) {
+        if (path == null || path.isBlank()) {
+            return false;
+        }
+        String lowerPath = path.toLowerCase(Locale.ROOT);
+        for (String extension : ALLOWED_EXTENSIONS) {
+            if (NON_TEXT_EXTENSIONS.contains(extension)) {
+                continue;
+            }
+            if (lowerPath.endsWith(extension)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static String validateContentMatchesExtension(String path, byte[] content) {
@@ -136,19 +164,7 @@ public final class SkillPackagePolicy {
     }
 
     private static boolean isTextExtension(String path) {
-        return path.endsWith(".md") || path.endsWith(".txt")
-                || path.endsWith(".json") || path.endsWith(".yaml") || path.endsWith(".yml")
-                || path.endsWith(".js") || path.endsWith(".cjs") || path.endsWith(".mjs")
-                || path.endsWith(".ts") || path.endsWith(".py") || path.endsWith(".sh")
-                || path.endsWith(".html") || path.endsWith(".css") || path.endsWith(".csv")
-                || path.endsWith(".toml") || path.endsWith(".xml") || path.endsWith(".xsd")
-                || path.endsWith(".xsl") || path.endsWith(".dtd") || path.endsWith(".ini")
-                || path.endsWith(".cfg") || path.endsWith(".env")
-                || path.endsWith(".rb") || path.endsWith(".go") || path.endsWith(".rs")
-                || path.endsWith(".java") || path.endsWith(".kt") || path.endsWith(".lua")
-                || path.endsWith(".sql") || path.endsWith(".r")
-                || path.endsWith(".bat") || path.endsWith(".ps1")
-                || path.endsWith(".zsh") || path.endsWith(".bash");
+        return isTextLikePath(path);
     }
 
     private static boolean isUtf8Text(byte[] content) {

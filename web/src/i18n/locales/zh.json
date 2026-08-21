@@ -1270,10 +1270,17 @@
     "packing": "正在打包文件夹...",
     "packFailed": "文件夹打包失败，请改用 ZIP 后重试",
     "folderEmpty": "文件夹是空的，或只包含可忽略的文件",
-    "folderMissingSkillMd": "文件夹根目录需要有 SKILL.md。请选择技能目录本身，而不是它的上一级。",
+    "folderMissingSkillMd": "所选文件夹中找不到 SKILL.md。请选择技能目录本身（根目录含 SKILL.md），而不是它的上一级。",
+    "folderAmbiguousSkillRoots": "检测到多个技能目录（{{roots}}）。请一次只选择一个包含 SKILL.md 的技能文件夹上传。",
+    "invalidDropType": "请拖入技能 ZIP，或包含 SKILL.md 的技能文件夹。普通单文件无法直接发布。",
+    "fileTypeRejected": "文件类型不受支持。请上传 .zip 或选择技能文件夹。",
+    "tooManyFiles": "一次只能上传一个技能包，请重新选择。",
+    "fileRejected": "文件未被接受，请上传技能 ZIP 或技能文件夹。",
     "folderTooManyFiles": "文件夹内文件超过 {{count}} 个，请精简后再上传",
     "folderTooLarge": "文件夹总大小超过 100MB",
-    "folderFileTooLarge": "文件 {{file}} 超过 10MB，请移除后再上传"
+    "folderFileTooLarge": "文件 {{file}} 超过 10MB，请移除后再上传",
+    "folderDisallowedExtension": "文件 {{file}} 的扩展名不在允许列表中，请移除后再上传",
+    "folderUnsafePath": "文件路径 {{file}} 非法（含 .. 或 . 段），请修正后再上传"
   },
   "layout": {
     "footerDescription": "天马AI资产中心，为企业提供高效的 AI 资产管理与分发平台。"
@@ -1425,6 +1432,7 @@
     "summaryHint": "必填，将展示在资产详情页",
     "department": "所属职能",
     "departmentPlaceholder": "选择所属职能",
+    "clearDepartment": "清空所属职能",
     "departmentHint": "可选：后端开发 / 前端开发 / UI / 产品 / 测试 / 运维",
     "businessScope": "业务范畴",
     "businessScopeHint": "发布后自动挂载为系统标签，可在搜索与详情页查看",

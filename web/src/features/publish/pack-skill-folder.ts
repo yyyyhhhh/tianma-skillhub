@@ -7,6 +7,65 @@ export const MAX_FOLDER_FILE_COUNT = 500
 export const MAX_FOLDER_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_FOLDER_TOTAL_SIZE = 100 * 1024 * 1024
 
+/** 与后端 SkillPackagePolicy.ALLOWED_EXTENSIONS 对齐 */
+export const ALLOWED_PACKAGE_EXTENSIONS = [
+  '.md',
+  '.txt',
+  '.json',
+  '.yaml',
+  '.yml',
+  '.html',
+  '.css',
+  '.csv',
+  '.pdf',
+  '.toml',
+  '.xml',
+  '.xsd',
+  '.xsl',
+  '.dtd',
+  '.ini',
+  '.cfg',
+  '.env',
+  '.js',
+  '.cjs',
+  '.mjs',
+  '.ts',
+  '.tsx',
+  '.jsx',
+  '.py',
+  '.sh',
+  '.rb',
+  '.go',
+  '.rs',
+  '.java',
+  '.kt',
+  '.lua',
+  '.sql',
+  '.r',
+  '.bat',
+  '.ps1',
+  '.zsh',
+  '.bash',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.svg',
+  '.gif',
+  '.webp',
+  '.ico',
+  '.doc',
+  '.xls',
+  '.ppt',
+  '.docx',
+  '.xlsx',
+  '.pptx',
+] as const
+
+export function hasAllowedPackageExtension(path: string): boolean {
+  const lower = path.toLowerCase()
+  return ALLOWED_PACKAGE_EXTENSIONS.some((extension) => lower.endsWith(extension))
+}
+
 export type PublishPackageSource = 'zip' | 'folder'
 
 /** 发布页选包结果：始终带可上传 zip，并标明来源便于展示。 */
@@ -54,17 +113,59 @@ export function shouldSkipPackagePath(path: string): boolean {
   })
 }
 
-export function resolveSkillPackageRoot(paths: string[]): string | null {
-  const skillMdPaths = paths
-    .filter((path) => path.split('/').pop() === 'SKILL.md')
-    .sort((left, right) => left.split('/').length - right.split('/').length || left.length - right.length)
+const SKILL_MD_PATH = 'SKILL.md'
 
-  const skillMd = skillMdPaths[0]
-  if (!skillMd) {
+/** 与后端 SkillPackagePolicy.canonicalizeSkillMdPath 一致：文件名大小写无关归一为 SKILL.md */
+export function canonicalizeSkillMdPath(path: string): string {
+  const slash = path.lastIndexOf('/')
+  const fileName = slash === -1 ? path : path.slice(slash + 1)
+  if (fileName.toLowerCase() !== SKILL_MD_PATH.toLowerCase()) {
+    return path
+  }
+  return slash === -1 ? SKILL_MD_PATH : `${path.slice(0, slash + 1)}${SKILL_MD_PATH}`
+}
+
+function isSkillMdPath(path: string): boolean {
+  const fileName = path.split('/').pop() || ''
+  return fileName.toLowerCase() === SKILL_MD_PATH.toLowerCase()
+}
+
+/** 与后端路径规范化一致：禁止 `.` / `..` 路径段，防止逃逸包根。 */
+export function hasUnsafePackagePath(path: string): boolean {
+  return path.split('/').filter(Boolean).some((segment) => segment === '.' || segment === '..')
+}
+
+export function resolveSkillPackageRoot(paths: string[]): string | null {
+  const skillRoots = [
+    ...new Set(
+      paths
+        .filter((path) => isSkillMdPath(path))
+        .map((path) => {
+          const slash = path.lastIndexOf('/')
+          return slash === -1 ? '' : path.slice(0, slash)
+        }),
+    ),
+  ]
+
+  if (skillRoots.length === 0) {
     return null
   }
-  const slash = skillMd.lastIndexOf('/')
-  return slash === -1 ? '' : skillMd.slice(0, slash)
+  // 根目录已有 SKILL.md 时整包视为单一技能（与后端 promote 行为一致）
+  if (skillRoots.includes('')) {
+    return ''
+  }
+
+  // 只保留最外层技能根：被其他技能根包含的嵌套 SKILL.md 不单独计为包根
+  const minimalRoots = skillRoots.filter(
+    (root) => !skillRoots.some((other) => other !== root && root.startsWith(`${other}/`)),
+  )
+  if (minimalRoots.length > 1) {
+    throw new PackSkillFolderError('upload.folderAmbiguousSkillRoots', {
+      roots: [...minimalRoots].sort().join(', '),
+    })
+  }
+
+  return minimalRoots[0]
 }
 
 function isPlainZip(file: File): boolean {
@@ -145,18 +246,22 @@ export async function packSkillFolder(
     if (!relative || relative.endsWith('/')) {
       continue
     }
-    if (relative.includes('..')) {
-      continue
+    if (hasUnsafePackagePath(relative)) {
+      throw new PackSkillFolderError('upload.folderUnsafePath', { file: relative })
     }
     if (file.size > MAX_FOLDER_FILE_SIZE) {
       throw new PackSkillFolderError('upload.folderFileTooLarge', { file: relative })
+    }
+    const entryPath = canonicalizeSkillMdPath(relative)
+    if (!hasAllowedPackageExtension(entryPath)) {
+      throw new PackSkillFolderError('upload.folderDisallowedExtension', { file: relative })
     }
     totalSize += file.size
     if (totalSize > MAX_FOLDER_TOTAL_SIZE) {
       throw new PackSkillFolderError('upload.folderTooLarge')
     }
     entries.push({
-      path: relative,
+      path: entryPath,
       content: new Uint8Array(await file.arrayBuffer()),
     })
   }
@@ -167,7 +272,7 @@ export async function packSkillFolder(
   if (entries.length > MAX_FOLDER_FILE_COUNT) {
     throw new PackSkillFolderError('upload.folderTooManyFiles', { count: MAX_FOLDER_FILE_COUNT })
   }
-  if (!entries.some((entry) => entry.path === 'SKILL.md')) {
+  if (!entries.some((entry) => entry.path === SKILL_MD_PATH)) {
     throw new PackSkillFolderError('upload.folderMissingSkillMd')
   }
 
@@ -190,5 +295,17 @@ export async function resolvePublishPackage(
       displayName: files[0].name,
     }
   }
+
+  const keptPaths = files
+    .map(filePackagePath)
+    .filter((path) => !shouldSkipPackagePath(path))
+  const hasDirectoryStructure = keptPaths.some((path) => path.includes('/'))
+  const hasSkillMd = keptPaths.some((path) => isSkillMdPath(path))
+
+  // 单个（或若干）散落普通文件：不是 zip，也不是技能文件夹结构
+  if (!hasDirectoryStructure && !hasSkillMd) {
+    throw new PackSkillFolderError('upload.invalidDropType')
+  }
+
   return packSkillFolder(files, preferredName)
 }

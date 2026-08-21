@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState, type ChangeEvent, type MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, type FileRejection } from 'react-dropzone'
 import { cn } from '@/shared/lib/utils'
 import { toast } from '@/shared/lib/toast'
 import { Button } from '@/shared/ui/button'
@@ -10,6 +10,7 @@ import {
   resolvePublishPackage,
   type PublishPackageSelection,
 } from './pack-skill-folder'
+import { resolveDropRejectionMessageKey } from './upload-drop-errors'
 
 interface UploadZoneProps {
   onFileSelect: (selection: PublishPackageSelection) => void
@@ -70,10 +71,18 @@ export function UploadZone({
   )
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], _rejections: unknown, event: unknown) => {
+    (acceptedFiles: File[], fileRejections: FileRejection[], event: unknown) => {
+      const rejectionKey = resolveDropRejectionMessageKey(fileRejections)
+      if (rejectionKey && acceptedFiles.length === 0) {
+        toast.error(t(rejectionKey))
+        return
+      }
+      if (acceptedFiles.length === 0) {
+        return
+      }
       void handleFiles(acceptedFiles, extractDroppedFolderName(event))
     },
-    [handleFiles],
+    [handleFiles, t],
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
