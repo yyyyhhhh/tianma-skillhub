@@ -1262,8 +1262,9 @@
   },
   "upload": {
     "dropHint": "Drop a ZIP or skill folder to upload...",
-    "dragHint": "Drag a ZIP or skill folder here, or click to select",
+    "dragHint": "Drag a ZIP or skill folder here",
     "formatHint": "ZIP files, or a folder that contains SKILL.md at its root",
+    "selectZip": "Select ZIP",
     "selectFolder": "Select folder",
     "packing": "Packing folder...",
     "packFailed": "Could not pack the folder. Zip it locally and try again.",

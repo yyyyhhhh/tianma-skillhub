@@ -17,9 +17,23 @@ function fileAt(relativePath: string, content = 'x', size?: number): File {
   return file
 }
 
+function fileWithDropPath(dropPath: string, content = 'x'): File {
+  const name = dropPath.split('/').filter(Boolean).pop() || 'file'
+  const file = new File([content], name, { type: 'text/plain' })
+  Object.defineProperty(file, 'path', { value: dropPath })
+  return file
+}
+
 describe('pack-skill-folder helpers', () => {
   it('prefers webkitRelativePath for package paths', () => {
     expect(filePackagePath(fileAt('demo/SKILL.md', '# demo'))).toBe('demo/SKILL.md')
+  })
+
+  it('uses react-dropzone path when webkitRelativePath is empty', () => {
+    expect(filePackagePath(fileWithDropPath('/animated-sketch-diagram/SKILL.md'))).toBe(
+      'animated-sketch-diagram/SKILL.md',
+    )
+    expect(filePackagePath(fileWithDropPath('./SKILL.md'))).toBe('SKILL.md')
   })
 
   it('skips macOS and git junk paths', () => {
@@ -40,7 +54,11 @@ describe('pack-skill-folder helpers', () => {
 describe('resolvePublishPackage', () => {
   it('returns a single dropped zip as-is', async () => {
     const zip = new File([new Uint8Array([0x50, 0x4b])], 'skill.zip', { type: 'application/zip' })
-    await expect(resolvePublishPackage([zip])).resolves.toBe(zip)
+    await expect(resolvePublishPackage([zip])).resolves.toEqual({
+      file: zip,
+      source: 'zip',
+      displayName: 'skill.zip',
+    })
   })
 
   it('packs a folder so SKILL.md sits at the zip root', async () => {
@@ -50,12 +68,40 @@ describe('resolvePublishPackage', () => {
       fileAt('my-skill/.DS_Store', 'junk'),
     ])
 
-    expect(packed.name).toBe('my-skill.zip')
-    expect(packed.type).toBe('application/zip')
-    const text = new TextDecoder().decode(await packed.arrayBuffer())
+    expect(packed.source).toBe('folder')
+    expect(packed.displayName).toBe('my-skill')
+    expect(packed.file.name).toBe('my-skill.zip')
+    expect(packed.file.type).toBe('application/zip')
+    const text = new TextDecoder().decode(await packed.file.arrayBuffer())
     expect(text).toContain('SKILL.md')
     expect(text).toContain('scripts/run.py')
     expect(text).not.toContain('.DS_Store')
+  })
+
+  it('uses preferredName when drag-drop paths have no top-level folder', async () => {
+    const packed = await packSkillFolder(
+      [fileAt('SKILL.md', '---\nname: demo\n---\n'), fileAt('scripts/run.py', 'print(1)\n')],
+      'animated-sketch-diagram',
+    )
+    expect(packed.source).toBe('folder')
+    expect(packed.displayName).toBe('animated-sketch-diagram')
+    expect(packed.file.name).toBe('animated-sketch-diagram.zip')
+  })
+
+  it('names zip from drop path folder when webkitRelativePath is empty', async () => {
+    const packed = await packSkillFolder([
+      fileWithDropPath('/animated-sketch-diagram/SKILL.md', '---\nname: demo\n---\n'),
+      fileWithDropPath('/animated-sketch-diagram/scripts/run.py', 'print(1)\n'),
+    ])
+    expect(packed.source).toBe('folder')
+    expect(packed.displayName).toBe('animated-sketch-diagram')
+    expect(packed.file.name).toBe('animated-sketch-diagram.zip')
+  })
+
+  it('falls back to skill.zip when package root and preferredName are empty', async () => {
+    const packed = await packSkillFolder([fileAt('SKILL.md', '---\nname: demo\n---\n')])
+    expect(packed.displayName).toBe('skill')
+    expect(packed.file.name).toBe('skill.zip')
   })
 
   it('rejects a folder without SKILL.md', async () => {

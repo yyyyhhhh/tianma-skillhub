@@ -7,6 +7,15 @@ export const MAX_FOLDER_FILE_COUNT = 500
 export const MAX_FOLDER_FILE_SIZE = 10 * 1024 * 1024
 export const MAX_FOLDER_TOTAL_SIZE = 100 * 1024 * 1024
 
+export type PublishPackageSource = 'zip' | 'folder'
+
+/** 发布页选包结果：始终带可上传 zip，并标明来源便于展示。 */
+export type PublishPackageSelection = {
+  file: File
+  source: PublishPackageSource
+  displayName: string
+}
+
 export class PackSkillFolderError extends Error {
   readonly key: string
   readonly params?: Record<string, string | number>
@@ -19,10 +28,23 @@ export class PackSkillFolderError extends Error {
   }
 }
 
+type FileWithDropPath = File & {
+  path?: string
+  relativePath?: string
+}
+
 export function filePackagePath(file: File): string {
-  const relative = file.webkitRelativePath?.trim()
-  const raw = relative && relative.length > 0 ? relative : file.name
-  return raw.replace(/\\/g, '/')
+  const withPath = file as FileWithDropPath
+  const webkitPath = withPath.webkitRelativePath?.trim()
+  if (webkitPath) {
+    return webkitPath.replace(/\\/g, '/')
+  }
+  // react-dropzone/file-selector 拖拽目录时写入 path，形如 /folder/SKILL.md
+  const dropPath = (withPath.relativePath || withPath.path || '').trim()
+  if (dropPath) {
+    return dropPath.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\//, '')
+  }
+  return file.name.replace(/\\/g, '/')
 }
 
 export function shouldSkipPackagePath(path: string): boolean {
@@ -53,13 +75,53 @@ function isPlainZip(file: File): boolean {
   return path.split('/').filter(Boolean).length <= 1
 }
 
-function folderZipName(root: string): string {
-  const segment = root.split('/').filter(Boolean).pop()
-  const base = (segment || 'skill').replace(/\.zip$/i, '')
-  return `${base}.zip`
+export function folderDisplayName(root: string, preferredName?: string): string {
+  const segment = root.split('/').filter(Boolean).pop() || preferredName?.trim()
+  return (segment || 'skill').replace(/\.zip$/i, '')
 }
 
-export async function packSkillFolder(files: File[]): Promise<File> {
+function folderZipName(root: string, preferredName?: string): string {
+  return `${folderDisplayName(root, preferredName)}.zip`
+}
+
+/**
+ * Drag-drop 文件夹时的次要回退：从 DataTransfer 取目录名。
+ * 主路径应依赖 file.path / webkitRelativePath。
+ */
+export function extractDroppedFolderName(event: unknown): string | undefined {
+  if (!event || typeof event !== 'object') {
+    return undefined
+  }
+
+  let dataTransfer: DataTransfer | null = null
+  if ('dataTransfer' in event) {
+    dataTransfer = (event as DragEvent).dataTransfer
+  } else if ('nativeEvent' in event) {
+    const nativeEvent = (event as { nativeEvent?: DragEvent }).nativeEvent
+    dataTransfer = nativeEvent?.dataTransfer ?? null
+  }
+  if (!dataTransfer?.items?.length) {
+    return undefined
+  }
+
+  const directoryNames: string[] = []
+  for (let index = 0; index < dataTransfer.items.length; index += 1) {
+    const item = dataTransfer.items[index]
+    if (item.kind !== 'file') {
+      continue
+    }
+    const entry = item.webkitGetAsEntry?.()
+    if (entry?.isDirectory && entry.name) {
+      directoryNames.push(entry.name)
+    }
+  }
+  return directoryNames.length === 1 ? directoryNames[0] : undefined
+}
+
+export async function packSkillFolder(
+  files: File[],
+  preferredName?: string,
+): Promise<PublishPackageSelection> {
   const kept = files.filter((file) => !shouldSkipPackagePath(filePackagePath(file)))
   if (kept.length === 0) {
     throw new PackSkillFolderError('upload.folderEmpty')
@@ -109,15 +171,24 @@ export async function packSkillFolder(files: File[]): Promise<File> {
     throw new PackSkillFolderError('upload.folderMissingSkillMd')
   }
 
-  return buildZipFile(entries, folderZipName(root))
+  const displayName = folderDisplayName(root, preferredName)
+  const file = await buildZipFile(entries, folderZipName(root, preferredName))
+  return { file, source: 'folder', displayName }
 }
 
-export async function resolvePublishPackage(files: File[]): Promise<File> {
+export async function resolvePublishPackage(
+  files: File[],
+  preferredName?: string,
+): Promise<PublishPackageSelection> {
   if (files.length === 0) {
     throw new PackSkillFolderError('upload.folderEmpty')
   }
   if (files.length === 1 && isPlainZip(files[0])) {
-    return files[0]
+    return {
+      file: files[0],
+      source: 'zip',
+      displayName: files[0].name,
+    }
   }
-  return packSkillFolder(files)
+  return packSkillFolder(files, preferredName)
 }

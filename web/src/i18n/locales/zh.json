@@ -1263,8 +1263,9 @@
   },
   "upload": {
     "dropHint": "放开以上传 ZIP 或文件夹...",
-    "dragHint": "拖拽 ZIP 或技能文件夹到此处，或点击选择",
+    "dragHint": "拖拽 ZIP 或技能文件夹到此处",
     "formatHint": "支持 .zip，也可直接选择包含 SKILL.md 的文件夹",
+    "selectZip": "选择 ZIP",
     "selectFolder": "选择文件夹",
     "packing": "正在打包文件夹...",
     "packFailed": "文件夹打包失败，请改用 ZIP 后重试",

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { UploadZone } from '@/features/publish/upload-zone'
+import type { PublishPackageSelection } from '@/features/publish/pack-skill-folder'
 import { PublishPackageGuide } from '@/features/publish/publish-package-guide'
 import { PUBLISH_TYPE_GUIDES } from '@/features/publish/publish-type-guides'
 import {
@@ -49,7 +50,7 @@ export function PublishPage() {
   const navigate = useNavigate()
   const search = useSearch({ from: '/dashboard/publish' })
   const prefill = normalizePublishPrefill(search)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [selectedPackage, setSelectedPackage] = useState<PublishPackageSelection | null>(null)
   const [namespaceSlug, setNamespaceSlug] = useState<string>(prefill.namespace)
   const [visibility, setVisibility] = useState<string>(prefill.visibility)
   const [displayName, setDisplayName] = useState('')
@@ -87,13 +88,13 @@ export function PublishPage() {
   }, [prefill.namespace, prefill.visibility])
 
   const handleRemoveSelectedFile = () => {
-    setSelectedFile(null)
+    setSelectedPackage(null)
     setPrecheckWarnings([])
     setWarningDialogOpen(false)
   }
 
-  const handleFileSelect = (file: File | null) => {
-    setSelectedFile(file)
+  const handleFileSelect = (selection: PublishPackageSelection) => {
+    setSelectedPackage(selection)
     setPrecheckWarnings([])
     setWarningDialogOpen(false)
   }
@@ -105,7 +106,7 @@ export function PublishPage() {
     if (!displayName.trim() || !summary.trim()) {
       return t('publish.selectRequired')
     }
-    if (!selectedFile) {
+    if (!selectedPackage) {
       return t('publish.fileRequired')
     }
     return null
@@ -116,12 +117,12 @@ export function PublishPage() {
     if (!namespaceSlug) missing.push(t('publish.namespace'))
     if (!displayName.trim()) missing.push(t('publish.displayName'))
     if (!summary.trim()) missing.push(t('publish.summary'))
-    if (!selectedFile) missing.push(t('publish.file'))
+    if (!selectedPackage) missing.push(t('publish.file'))
     return missing
   }, [
     displayName,
     namespaceSlug,
-    selectedFile,
+    selectedPackage,
     summary,
     t,
   ])
@@ -159,10 +160,10 @@ export function PublishPage() {
   }, [namespaceSlug, namespaces])
 
   const resolvePublishFile = async (): Promise<File> => {
-    if (!selectedFile) {
+    if (!selectedPackage) {
       throw new Error(t('publish.fileRequired'))
     }
-    return selectedFile
+    return selectedPackage.file
   }
 
   const publishSkill = async (confirmWarnings = false) => {
@@ -433,14 +434,14 @@ export function PublishPage() {
               onFileSelect={handleFileSelect}
               disabled={publishMutation.isPending}
             />
-            {selectedFile && (
+            {selectedPackage && (
               <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-secondary/30 px-4 py-3">
                 <div className="min-w-0 text-sm text-muted-foreground flex items-center gap-2">
                   <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span className="truncate">
-                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    {selectedPackage.displayName} ({(selectedPackage.file.size / 1024).toFixed(1)} KB)
                   </span>
                 </div>
                 <Button

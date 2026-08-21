@@ -3,10 +3,16 @@ import { useTranslation } from 'react-i18next'
 import { useDropzone } from 'react-dropzone'
 import { cn } from '@/shared/lib/utils'
 import { toast } from '@/shared/lib/toast'
-import { PackSkillFolderError, resolvePublishPackage } from './pack-skill-folder'
+import { Button } from '@/shared/ui/button'
+import {
+  extractDroppedFolderName,
+  PackSkillFolderError,
+  resolvePublishPackage,
+  type PublishPackageSelection,
+} from './pack-skill-folder'
 
 interface UploadZoneProps {
-  onFileSelect: (file: File) => void
+  onFileSelect: (selection: PublishPackageSelection) => void
   disabled?: boolean
   /** MIME/extension map for react-dropzone; omit to accept zip files and folders. */
   accept?: Record<string, string[]>
@@ -17,6 +23,7 @@ interface UploadZoneProps {
 /**
  * Provides the publish page dropzone for uploading one package at a time.
  * ZIP files are used as-is; dropped or picked folders are packed to a zip in the browser.
+ * The dashed area is drag-only; file/folder selection uses dedicated buttons.
  */
 export function UploadZone({
   onFileSelect,
@@ -26,6 +33,7 @@ export function UploadZone({
   allowFolder = true,
 }: UploadZoneProps) {
   const { t } = useTranslation()
+  const zipInputRef = useRef<HTMLInputElement>(null)
   const folderInputRef = useRef<HTMLInputElement>(null)
   const assignFolderInput = (node: HTMLInputElement | null) => {
     folderInputRef.current = node
@@ -40,14 +48,14 @@ export function UploadZone({
   const busy = Boolean(disabled || packing)
 
   const handleFiles = useCallback(
-    async (files: File[]) => {
+    async (files: File[], preferredName?: string) => {
       if (files.length === 0) {
         return
       }
       setPacking(true)
       try {
-        const packed = await resolvePublishPackage(files)
-        onFileSelect(packed)
+        const selection = await resolvePublishPackage(files, preferredName)
+        onFileSelect(selection)
       } catch (error) {
         if (error instanceof PackSkillFolderError) {
           toast.error(t(error.key, error.params))
@@ -62,8 +70,8 @@ export function UploadZone({
   )
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
-      void handleFiles(acceptedFiles)
+    (acceptedFiles: File[], _rejections: unknown, event: unknown) => {
+      void handleFiles(acceptedFiles, extractDroppedFolderName(event))
     },
     [handleFiles],
   )
@@ -74,13 +82,26 @@ export function UploadZone({
     multiple: allowFolder,
     maxFiles: allowFolder ? undefined : 1,
     disabled: busy,
+    noClick: true,
     useFsAccessApi: false,
   })
+
+  const openZipPicker = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    zipInputRef.current?.click()
+  }
 
   const openFolderPicker = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
     event.stopPropagation()
     folderInputRef.current?.click()
+  }
+
+  const onZipInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files ? Array.from(event.target.files) : []
+    event.target.value = ''
+    void handleFiles(selected)
   }
 
   const onFolderInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -93,12 +114,21 @@ export function UploadZone({
     <div
       {...getRootProps()}
       className={cn(
-        'upload-zone rounded-2xl border border-slate-200 bg-white p-10 text-center cursor-pointer transition-all duration-300 hover:border-slate-300',
+        'upload-zone rounded-2xl border border-slate-200 bg-white p-10 text-center cursor-default transition-all duration-300 hover:border-slate-300',
         isDragActive && 'border-[#6466F1] bg-indigo-50/50 scale-[1.01]',
         busy && 'opacity-50 cursor-not-allowed'
       )}
     >
       <input {...getInputProps()} />
+      <input
+        ref={zipInputRef}
+        type="file"
+        accept=".zip,application/zip,application/x-zip-compressed"
+        className="hidden"
+        data-testid="upload-zip-input"
+        onClick={(event) => event.stopPropagation()}
+        onChange={onZipInputChange}
+      />
       {allowFolder ? (
         <input
           ref={assignFolderInput}
@@ -136,16 +166,30 @@ export function UploadZone({
           <>
             <p className="text-sm font-medium text-foreground">{t('upload.dragHint')}</p>
             <p className="text-xs text-muted-foreground">{t(formatHintKey)}</p>
-            {allowFolder ? (
-              <button
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+              <Button
                 type="button"
-                className="text-xs font-medium text-primary hover:underline"
-                onClick={openFolderPicker}
+                variant="outline"
+                size="sm"
+                data-testid="upload-select-zip"
+                onClick={openZipPicker}
                 disabled={busy}
               >
-                {t('upload.selectFolder')}
-              </button>
-            ) : null}
+                {t('upload.selectZip')}
+              </Button>
+              {allowFolder ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  data-testid="upload-select-folder"
+                  onClick={openFolderPicker}
+                  disabled={busy}
+                >
+                  {t('upload.selectFolder')}
+                </Button>
+              ) : null}
+            </div>
           </>
         )}
       </div>
