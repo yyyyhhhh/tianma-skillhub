@@ -35,7 +35,6 @@ export function LandingPage() {
   }
 
   const heroView = useInView()
-  const statsView = useInView()
   const featuresView = useInView()
   const quickStartView = useInView()
   const popularView = useInView()
@@ -82,16 +81,10 @@ export function LandingPage() {
     },
   ]
 
-  const stats = [
-    { value: '1000+', label: t('landing.stats.skills', { defaultValue: 'Registry items' }) },
-    { value: '50K+', label: t('landing.stats.downloads', { defaultValue: 'Downloads' }) },
-    { value: '200+', label: t('landing.stats.teams', { defaultValue: 'Teams' }) },
-  ]
-
   return (
     <>
       {/* Hero Section */}
-      <main ref={heroView.ref} className={`relative z-10 flex flex-col items-center pt-16 pb-20 px-4 md:pt-24 scroll-fade-up${heroView.inView ? ' in-view' : ''}`}>
+      <main ref={heroView.ref} className={`relative z-10 flex flex-col items-center pt-16 pb-8 px-4 md:pt-24 scroll-fade-up${heroView.inView ? ' in-view' : ''}`}>
         <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-brand-gradient mb-4">
           {BRAND_NAME}
         </h1>
@@ -130,7 +123,7 @@ export function LandingPage() {
         </div>
 
         {/* CTA buttons */}
-        <div className="flex flex-wrap justify-center gap-4 mb-14">
+        <div className="flex flex-wrap justify-center gap-4">
           <Link
             to="/search"
             search={{ q: '', sort: 'relevance', page: 0, starredOnly: false }}
@@ -150,24 +143,10 @@ export function LandingPage() {
             {t('landing.hero.publishSkill', { defaultValue: '开始构建' })}
           </Link>
         </div>
-
-        {/* Stats */}
-        <div ref={statsView.ref} className={`flex flex-row justify-center gap-16 md:gap-24 scroll-fade-up${statsView.inView ? ' in-view' : ''}`} style={{ transitionDelay: '0.15s' }}>
-          {stats.map((stat) => (
-            <div key={stat.label} className="flex flex-col items-center">
-              <span className="text-3xl md:text-4xl font-bold tracking-tight text-brand-gradient mb-1">
-                {stat.value}
-              </span>
-              <span className="text-sm font-normal" style={{ color: 'hsl(var(--foreground))' }}>
-                {stat.label}
-              </span>
-            </div>
-          ))}
-        </div>
       </main>
 
       {/* Popular Downloads Section */}
-      <section ref={popularView.ref} className={`relative z-10 w-full py-20 md:py-24 px-6 scroll-fade-up${popularView.inView ? ' in-view' : ''}`} style={{ background: 'var(--bg-page, hsl(var(--background)))' }}>
+      <section ref={popularView.ref} className={`relative z-10 w-full pt-10 pb-20 md:pt-12 md:pb-24 px-6 scroll-fade-up${popularView.inView ? ' in-view' : ''}`} style={{ background: 'var(--bg-page, hsl(var(--background)))' }}>
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div>
